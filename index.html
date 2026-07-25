@@ -922,7 +922,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <p id="tokenHelper" class="token-permissions-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Administration</b>, <b>Contents</b>, and <b>Pages</b> set to Read &amp; Write. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
+          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Administration</b> and <b>Contents</b> set to Read &amp; Write - that's all publishing needs. You can also add <b>Pages</b> (Read &amp; Write), but GitHub's API doesn't reliably support enabling Pages with this token type, so HoppingSite will fall back to a one-click manual step if that happens. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
         </p>
       </section>
 
@@ -1162,6 +1162,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <button type="button" class="copy-btn" id="copyLinkBtn" aria-label="Copy link"><i class="fa-solid fa-copy" aria-hidden="true"></i></button>
       </div>
 
+      <div id="pagesManualStepNote" class="token-permissions-note hidden" style="text-align:left; margin:0 0 16px;">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <span id="pagesManualStepText"></span>
+      </div>
+
       <div class="stat-grid">
         <div class="stat-box"><div class="num" id="statSize">--</div><div class="lbl">Size</div></div>
         <div class="stat-box"><div class="num" id="statTime">42s</div><div class="lbl">Deploy time</div></div>
@@ -1384,7 +1389,7 @@ const GitHubClient = (function(){
         forbidden:true,
         message: bodyMsg
           ? `GitHub denied this action: ${bodyMsg}`
-          : "This GitHub token doesn't have permission to do that. Check its Administration, Contents, and Pages scopes."
+          : "This GitHub token doesn't have permission to do that. Check its Administration and Contents scopes."
       };
     }
 
@@ -1454,8 +1459,52 @@ const GitHubClient = (function(){
     });
   }
 
-  /** POST (first time) or PUT (already configured) /repos/{owner}/{repo}/pages */
+  /**
+   * GET /repos/{owner}/{repo}/pages - read-only status check.
+   * This is the one Pages endpoint that fine-grained PATs reliably
+   * support (it only needs "Pages: read", and even works unauthenticated
+   * for public repos). Used both to short-circuit enablePages() when a
+   * site is already live, and to verify the outcome afterward regardless
+   * of whether the enable call itself succeeded.
+   */
+  async function getPagesStatus(name){
+    return request(`/repos/${cfg.owner}/${name}/pages`, { method:"GET" });
+  }
+
+  /**
+   * Best-effort attempt to configure GitHub Pages via
+   * POST/PUT /repos/{owner}/{repo}/pages.
+   *
+   * IMPORTANT: Despite GitHub's docs listing "Pages: write" +
+   * "Administration: write" as sufficient, this specific endpoint is a
+   * long-standing, publicly-acknowledged gap in fine-grained PAT support
+   * (GitHub's own team has listed Pages-site configuration among the
+   * APIs that "do not yet support the fine-grained permission model").
+   * In practice it frequently answers with 403 "Resource not accessible
+   * by personal access token" even when every listed scope is granted -
+   * classic tokens with the "repo" scope work fine.
+   *
+   * Because of that, this function NEVER throws or returns a hard
+   * failure to its caller. It returns a status object describing what
+   * happened, and the caller (publishSite) treats every outcome except
+   * a clean success as "repo + file are still published; Pages just
+   * needs a one-time manual toggle" rather than aborting the deploy.
+   */
   async function enablePages(name){
+    // If Pages is already configured (e.g. a previous publish, or the
+    // user enabled it by hand), there's nothing to do - and no need to
+    // risk the unsupported call at all. A genuine transport problem on
+    // this read-only check (auth/rate-limit/network) is passed through
+    // so the caller can still tell the user something concrete; a plain
+    // 404 ("no Pages site yet") is expected and means "keep going".
+    const existingStatus = await getPagesStatus(name);
+    if(existingStatus.ok){
+      return { attempted:false, alreadyEnabled:true };
+    }
+    if(existingStatus.authError || existingStatus.rateLimited || existingStatus.networkError){
+      return { attempted:false, alreadyEnabled:false, transportFailure: existingStatus };
+    }
+
     const payload = {
       build_type:"legacy",
       source:{ branch:"main", path:"/" }
@@ -1465,15 +1514,37 @@ const GitHubClient = (function(){
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(payload)
     });
+
     if(res.status === 409){
-      // Pages already enabled for this repo - update its source instead.
+      // Pages already enabled - update its source instead.
       res = await request(`/repos/${cfg.owner}/${name}/pages`, {
         method:"PUT",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify(payload)
       });
     }
-    return res;
+
+    if(res.ok){
+      return { attempted:true, alreadyEnabled:false, succeeded:true };
+    }
+
+    if(res.authError || res.rateLimited || res.networkError){
+      return { attempted:true, alreadyEnabled:false, succeeded:false, transportFailure: res };
+    }
+
+    // The endpoint itself is the fine-grained-PAT trouble spot: a 403
+    // that authenticated fine but was refused for this specific action.
+    // Detect that specifically so the caller can explain the real cause
+    // instead of a generic failure - the repo and file are already
+    // published fine regardless of how this call went.
+    const isPermissionGap = !!res.forbidden;
+
+    return {
+      attempted:true, alreadyEnabled:false, succeeded:false,
+      permissionGap: isPermissionGap,
+      status: res.status,
+      message: res.message || (res.body && res.body.message) || null
+    };
   }
 
   /** Poll GET /repos/{owner}/{repo}/pages until the build reports "built". */
@@ -1494,8 +1565,15 @@ const GitHubClient = (function(){
    * Full publish workflow. onStage(stageKey) lets the UI drive its
    * existing progress bar/log off real steps instead of a timer.
    *
-   * Returns: { ok:true, url, repo } on success
-   *          { ok:false, reason:"name_taken" | "error", message }
+   * The repo-create + file-commit steps are the only ones required to
+   * succeed for this to report ok:true - both are fully supported by
+   * fine-grained PATs. Pages configuration is attempted best-effort on
+   * top of that; if it can't be confirmed live, the result still reports
+   * ok:true (nothing was lost) plus pagesManualStepNeeded:true and a
+   * pagesMessage explaining the one remaining manual step.
+   *
+   * Returns: { ok:true, url, repo, pagesManualStepNeeded?, pagesReason?, pagesMessage? }
+   *          { ok:false, reason:"name_taken" | "auth" | "forbidden" | "rate_limited" | "network" | "error", message }
    */
   // Reads the special-case flags a request() result may carry (auth,
   // forbidden/permission, rate-limited, network) and turns them into one
@@ -1556,39 +1634,75 @@ const GitHubClient = (function(){
         return { ok:false, reason:"error", message: committed.body?.message || "Could not upload index.html." };
       }
 
+      // The repository exists and index.html is committed to its default
+      // branch - the two operations that fine-grained PATs fully support.
+      // Everything from here on is "make Pages serve it", which is the
+      // one part of this workflow where fine-grained PATs are unreliable
+      // (see enablePages() above). None of it is allowed to undo the
+      // successful repo + file publish above by reporting a hard failure.
       onStage("pages");
       const pages = await enablePages(name);
-      const pagesFailure = classifyFailure(pages);
-      if(pagesFailure) return pagesFailure;
-      if(!pages.ok){
-        return { ok:false, reason:"error", message: pages.body?.message || "Could not enable GitHub Pages." };
-      }
+
+      // A network/rate-limit/auth problem *during* the Pages attempt is
+      // still a real problem worth surfacing distinctly, but the repo and
+      // file are already live in GitHub regardless.
+      const pagesTransportFailure = pages.transportFailure ? classifyFailure(pages.transportFailure) : null;
 
       onStage("verify");
       onStage("deploy");
-      const build = await waitForPagesBuild(name);
-      if(!build.ok && build.status === "errored"){
-        return { ok:false, reason:"error", message:"GitHub Pages build failed for this repository. Check the repo's Pages settings for details." };
+
+      let build = { ok:true, status:"built" };
+      if(pages.succeeded || pages.alreadyEnabled){
+        build = await waitForPagesBuild(name);
       }
-      // A "timeout" status means the build simply took longer than we
-      // polled for — GitHub Pages often finishes shortly after. We don't
-      // fail the publish for this, since the deploy itself succeeded.
 
       onStage("final");
       sessionOwnedRepos.add(name);
 
-      // Confirm Pages is actually live and pull GitHub's own reported URL -
-      // for owner "hoppingsite" this is the same address HoppingSite shows,
-      // just fetched from the real API response rather than assumed.
-      const pagesInfo = await request(`/repos/${cfg.owner}/${name}/pages`, { method:"GET" });
-      const liveUrl = pagesInfo.ok && pagesInfo.body && pagesInfo.body.html_url
+      // Always confirm against the read-only Pages endpoint - it works
+      // regardless of how enablePages() went, and is the source of truth
+      // for whether the site is actually live yet.
+      const pagesInfo = await getPagesStatus(name);
+      const isLive = pagesInfo.ok && pagesInfo.body && pagesInfo.body.status !== "errored";
+      const liveUrl = isLive && pagesInfo.body.html_url
         ? pagesInfo.body.html_url
         : `https://${HoppingSiteConfig.brand.domainRoot}/${name}`;
 
+      if(isLive){
+        return { ok:true, repo:name, url: liveUrl };
+      }
+
+      // Pages isn't confirmed live. Distinguish *why* so the UI can give
+      // an accurate explanation instead of a generic error - in every one
+      // of these branches the repo and index.html are already published.
+      if(pages.permissionGap){
+        return {
+          ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+          pagesReason:"fine_grained_unsupported",
+          pagesMessage:"Your repository and index.html were published successfully. GitHub's API doesn't allow Fine-grained Personal Access Tokens to turn on Pages automatically (this is a known GitHub limitation, not a HoppingSite error) - turn it on once in your repo's Settings → Pages, choosing the \"main\" branch as the source."
+        };
+      }
+      if(pagesTransportFailure){
+        return {
+          ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+          pagesReason: pagesTransportFailure.reason,
+          pagesMessage: `Your repository and index.html were published successfully, but enabling Pages hit an issue: ${pagesTransportFailure.message} You can also turn it on manually in Settings → Pages.`
+        };
+      }
+      if(build.status === "errored"){
+        return {
+          ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+          pagesReason:"build_errored",
+          pagesMessage:"Your repository and index.html were published successfully, but the GitHub Pages build reported an error. Check your repo's Settings → Pages for details."
+        };
+      }
+      // Timeout waiting for "built", or Pages status just isn't visible
+      // yet - GitHub Pages often finishes shortly after we stop polling,
+      // so this isn't treated as a failure, just not-yet-confirmed.
       return {
-        ok:true,
-        repo:name,
-        url: liveUrl
+        ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+        pagesReason:"pending",
+        pagesMessage:"Your repository and index.html were published successfully. GitHub Pages is still finishing its first build - your site should be live within a minute or two. If it isn't, check Settings → Pages."
       };
     }catch(err){
       return { ok:false, reason:"error", message: err && err.message ? err.message : "Something went wrong while publishing." };
@@ -2297,6 +2411,7 @@ function resetDeployPanel(){
   $("#deployTitle").textContent = "Publishing your site";
   setProgress(0);
   deployLog.innerHTML = "";
+  $("#pagesManualStepNote").classList.add("hidden");
 }
 
 function unlockControls(){
@@ -2386,7 +2501,15 @@ function showSuccess(result){
   const opt = HoppingSiteConfig.expiration.options.find(o=>o.value===state.expiration);
   $("#statExpiry").textContent = opt ? opt.label : "Never";
 
-  showSnackbar("Your website is live!", "ok");
+  const manualNote = $("#pagesManualStepNote");
+  if(result.pagesManualStepNeeded){
+    $("#pagesManualStepText").innerHTML = `${result.pagesMessage} <a href="https://github.com/${HoppingSiteConfig.github.owner}/${result.repo}/settings/pages" target="_blank" rel="noopener"><b>Open Pages settings</b></a>.`;
+    manualNote.classList.remove("hidden");
+    showSnackbar("Repo and file published - one manual step left for Pages.", "ok", 6000);
+  } else {
+    manualNote.classList.add("hidden");
+    showSnackbar("Your website is live!", "ok");
+  }
 }
 
 deployForm.addEventListener("submit", (e)=>{
