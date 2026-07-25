@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- HoppingSite v1.0.0 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -458,6 +459,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   font-size:12.5px; color:var(--slate-500); background:var(--slate-100);
   padding:9px 12px; border-radius:10px;
 }
+/* Locked/disabled state - expiration isn't live yet, so the whole picker
+   is shown but inert: no hover response, no active highlight, no click. */
+.expiry-grid.is-locked{ opacity:.55; pointer-events:none; filter:grayscale(.35); }
+.expiry-grid.is-locked .expiry-chip:hover{ border-color:var(--slate-200); background:var(--surface-2); }
+.soon-badge{
+  display:inline-flex; align-items:center; gap:5px;
+  background:var(--slate-100); color:var(--slate-500);
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  padding:4px 10px; border-radius:var(--radius-pill);
+  margin-left:8px; vertical-align:middle;
+}
 
 /* ============================================================
    Summary card
@@ -905,6 +917,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <span class="brand-mark">
         <img src="https://i.ibb.co/NnnPscR9/logo-redesign.png" alt="HoppingSite logo">
       </span>
+      <span class="brand-name">HoppingSite</span>
     </a>
     <nav class="header-nav" id="headerNav" aria-label="Primary">
       <a href="#upload-card"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> Publish</a>
@@ -930,7 +943,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <img class="hero-logo" src="https://i.ibb.co/NnnPscR9/logo-redesign.png" alt="HoppingSite logo">
       </div>
       <h1>Publish your <span class="grad">index.html</span><br>in under a minute</h1>
-      <p>Drop a single file, pick a subdomain, and HoppingSite deploys it straight to GitHub Pages - free, open source, and built for the whole web.</p>
+      <p>One single <code style="font-family:var(--font-mono); background:var(--slate-100); color:var(--primary-hover); padding:2px 7px; border-radius:6px; font-size:.92em;">index.html</code> file - with your CSS and JavaScript inside it - is all it takes. Drop it in, pick a subdomain, and HoppingSite deploys it straight to GitHub Pages, free and open source.</p>
     </div>
   </section>
 
@@ -979,7 +992,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <p id="tokenHelper" class="token-permissions-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Repository access: All repositories</b>, and <b>Administration</b> + <b>Contents</b> set to Read &amp; Write. Adding <b>Pages</b> (Read &amp; Write) is optional - HoppingSite falls back to a one-click manual step if GitHub's API doesn't support it for this token. Your token is saved with <code>localStorage</code> in this browser only - never written into this page, committed to Git, or sent anywhere except directly to GitHub's API.</span>
+          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Repository access: All repositories</b>, and <b>Administration</b> + <b>Contents</b> + <b>Pages</b> set to Read &amp; Write - GitHub's API supports enabling Pages directly, so HoppingSite publishes and turns on Pages in one step. If a token is missing Pages access, HoppingSite falls back to a one-click manual step instead. Your token is saved with <code>localStorage</code> in this browser only - never written into this page, committed to Git, or sent anywhere except directly to GitHub's API.</span>
         </p>
       </section>
 
@@ -1045,36 +1058,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <div class="card-head">
           <div class="card-icon"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></div>
           <div class="card-title">
-            <h2>Set an expiration</h2>
+            <h2>Set an expiration <span class="soon-badge"><i class="fa-solid fa-lock" aria-hidden="true"></i> Coming soon</span></h2>
             <span>Your site can auto-expire, or live forever</span>
           </div>
           <span class="step-num">03</span>
         </div>
 
-        <div class="expiry-grid" id="expiryGrid" role="radiogroup" aria-label="Website expiration period">
-          <div class="expiry-chip" data-value="1d" data-label="1 Day" role="radio" aria-checked="false" tabindex="0">
+        <div class="expiry-grid is-locked" id="expiryGrid" role="radiogroup" aria-label="Website expiration period (coming soon)" aria-disabled="true">
+          <div class="expiry-chip" data-value="1d" data-label="1 Day" role="radio" aria-checked="false" aria-disabled="true" tabindex="-1">
             <div class="val">1</div><div class="lbl">Day</div>
           </div>
-          <div class="expiry-chip" data-value="7d" data-label="7 Days" role="radio" aria-checked="false" tabindex="0">
+          <div class="expiry-chip" data-value="7d" data-label="7 Days" role="radio" aria-checked="false" aria-disabled="true" tabindex="-1">
             <div class="val">7</div><div class="lbl">Days</div>
           </div>
-          <div class="expiry-chip" data-value="30d" data-label="30 Days" role="radio" aria-checked="false" tabindex="0">
+          <div class="expiry-chip" data-value="30d" data-label="30 Days" role="radio" aria-checked="false" aria-disabled="true" tabindex="-1">
             <div class="val">30</div><div class="lbl">Days</div>
           </div>
-          <div class="expiry-chip" data-value="90d" data-label="90 Days" role="radio" aria-checked="false" tabindex="0">
+          <div class="expiry-chip" data-value="90d" data-label="90 Days" role="radio" aria-checked="false" aria-disabled="true" tabindex="-1">
             <div class="val">90</div><div class="lbl">Days</div>
           </div>
-          <div class="expiry-chip" data-value="1y" data-label="1 Year" role="radio" aria-checked="false" tabindex="0">
+          <div class="expiry-chip" data-value="1y" data-label="1 Year" role="radio" aria-checked="false" aria-disabled="true" tabindex="-1">
             <div class="val">1</div><div class="lbl">Year</div>
           </div>
-          <div class="expiry-chip active" data-value="never" data-label="Never" role="radio" aria-checked="true" tabindex="0">
+          <div class="expiry-chip active" data-value="never" data-label="Never" role="radio" aria-checked="true" aria-disabled="true" tabindex="-1">
             <div class="val">∞</div><div class="lbl">Never</div>
           </div>
         </div>
 
         <div class="expiry-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true" style="color:var(--blue-600)"></i>
-          <span id="expiryNoteText">This site will stay live indefinitely unless you delete it.</span>
+          <span id="expiryNoteText">Expiration isn't available yet - every site published today stays live forever, until you delete it.</span>
         </div>
       </section>
 
@@ -1183,11 +1196,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       </div>
       <div class="footer-meta">
         <i class="fa-solid fa-code-branch" aria-hidden="true"></i>
+        <span>v1.0.0</span>
+        <span class="sep">•</span>
         <span>Powered by GitHub Pages</span>
         <span class="sep">•</span>
         <span>Open Source</span>
         <span class="sep">•</span>
-        <a href="https://github.com" target="_blank" rel="noopener"><i class="fa-brands fa-github" aria-hidden="true"></i> View on GitHub</a>
+        <a href="https://github.com/hoppingsite" target="_blank" rel="noopener"><i class="fa-brands fa-github" aria-hidden="true"></i> View on GitHub</a>
       </div>
     </div>
     <p class="footer-note">HoppingSite works in collaboration with <b>GitHub</b> to give every site a fast, reliable, free home on GitHub Pages.</p>
@@ -2535,21 +2550,12 @@ const expiryGrid = $("#expiryGrid");
 const expiryNoteText = $("#expiryNoteText");
 const expiryChips = Array.from(expiryGrid.querySelectorAll(".expiry-chip"));
 
-function selectExpiry(chip){
-  expiryChips.forEach(c=>{ c.classList.remove("active"); c.setAttribute("aria-checked","false"); });
-  chip.classList.add("active");
-  chip.setAttribute("aria-checked","true");
-  state.expiration = chip.dataset.value;
-  const opt = HoppingSiteConfig.expiration.options.find(o=>o.value === state.expiration);
-  expiryNoteText.textContent = opt ? opt.note : "";
-  updateSummary();
-}
-expiryChips.forEach(chip=>{
-  chip.addEventListener("click", ()=> selectExpiry(chip));
-  chip.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); selectExpiry(chip); }
-  });
-});
+// Expiration is disabled for now (see .is-locked + aria-disabled on the
+// markup, and tabindex="-1" on each chip) - there's no backend yet to
+// actually enforce a timed auto-delete on a published GitHub repo, so the
+// picker is shown as a locked "Coming soon" preview rather than wired up.
+// state.expiration intentionally stays pinned to the config default
+// ("never") and selectExpiry/click handlers are not attached.
 
 /* ============================================================
    STEP 4 - Summary
@@ -3034,7 +3040,8 @@ $("#publishAnotherBtn").addEventListener("click", ()=>{
   expiryChips.forEach(c=>{ c.classList.remove("active"); c.setAttribute("aria-checked","false"); });
   const neverChip = expiryChips.find(c=>c.dataset.value === "never");
   if(neverChip){ neverChip.classList.add("active"); neverChip.setAttribute("aria-checked","true"); }
-  expiryNoteText.textContent = HoppingSiteConfig.expiration.options.find(o=>o.value==="never").note;
+  // expiryNoteText is left as-is: expiration is locked/coming-soon, so its
+  // note is static now rather than swapping per selected option.
 
   Array.from(deployForm.elements).forEach(elm => elm.disabled = false);
   updateSummary();
