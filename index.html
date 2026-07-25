@@ -533,6 +533,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   transition:opacity .3s var(--ease-out);
 }
 .overlay.show{ opacity:1; pointer-events:auto; }
+/* When minimized, the dimmed backdrop steps aside so the page underneath
+   stays fully usable - only the small floating pill (below) remains. */
+.overlay.minimized{ background:transparent; backdrop-filter:none; pointer-events:none; }
+.overlay.minimized .deploy-panel{ display:none; }
+
 .deploy-panel{
   width:100%; max-width:460px; background:var(--surface);
   border-radius:var(--radius-lg); padding:34px 30px;
@@ -540,8 +545,60 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   transform:translateY(18px) scale(.97); opacity:0;
   transition:all .4s var(--ease-spring);
   text-align:center;
+  position:relative;
 }
 .overlay.show .deploy-panel{ transform:translateY(0) scale(1); opacity:1; }
+
+.deploy-panel-controls{
+  position:absolute; top:14px; right:14px;
+  display:flex; gap:6px;
+}
+.deploy-panel-controls button{
+  width:32px; height:32px; border-radius:50%;
+  border:1.5px solid var(--slate-200); background:var(--surface);
+  color:var(--slate-500); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; transition:all .15s var(--ease-out);
+}
+.deploy-panel-controls button:hover{ color:var(--ink-900); border-color:var(--blue-400); background:#FFF3F1; }
+
+/* Floating pill shown while a deploy is minimized - lets the person keep
+   browsing the rest of the page while publishing continues in the
+   background, and click back in at any time. */
+.deploy-pill{
+  position:fixed; bottom:22px; right:22px; z-index:210;
+  display:flex; align-items:center; gap:12px;
+  background:var(--ink-900); color:#fff;
+  padding:12px 16px 12px 12px; border-radius:var(--radius-pill);
+  box-shadow:var(--shadow-lg);
+  cursor:pointer; pointer-events:auto;
+  transform:translateY(12px) scale(.95); opacity:0;
+  transition:all .3s var(--ease-spring);
+}
+.deploy-pill.show{ transform:translateY(0) scale(1); opacity:1; }
+.deploy-pill-ring{
+  width:34px; height:34px; border-radius:50%; position:relative; flex-shrink:0;
+  background:conic-gradient(var(--secondary-orange) calc(var(--pill-pct,0) * 1%), rgba(255,255,255,.18) 0);
+  display:flex; align-items:center; justify-content:center;
+}
+.deploy-pill-ring::after{
+  content:''; position:absolute; inset:4px; border-radius:50%; background:var(--ink-900);
+}
+.deploy-pill-ring i{ position:relative; font-size:12px; z-index:1; }
+.deploy-pill-text{ font-size:13px; font-weight:600; line-height:1.3; text-align:left; }
+.deploy-pill-text span{ display:block; font-size:11px; font-weight:500; color:rgba(255,255,255,.65); }
+.deploy-pill-close{
+  width:24px; height:24px; border-radius:50%; border:none;
+  background:rgba(255,255,255,.12); color:#fff; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:11px;
+  flex-shrink:0;
+}
+.deploy-pill-close:hover{ background:rgba(255,255,255,.24); }
+
+.deploy-timer{
+  font-family:var(--font-mono); font-size:12.5px; color:var(--slate-500);
+  margin-top:2px; margin-bottom:14px;
+}
 
 .deploy-orbit{
   width:78px; height:78px; margin:0 auto 22px; position:relative;
@@ -914,20 +971,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <div class="token-example-row">
           <i class="fa-solid fa-code" aria-hidden="true" style="color:var(--slate-400);"></i>
-          <code id="tokenExampleText">ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+          <code id="tokenExampleText">github_pat_xxxxxxxxxxxxxxxxxxxx</code>
           <button type="button" class="copy-btn" id="copyExampleTokenBtn" aria-label="Copy example token format">
             <i class="fa-solid fa-copy" aria-hidden="true"></i>
           </button>
         </div>
-        <div class="token-example-row" style="margin-top:6px;">
-          <i class="fa-solid fa-code" aria-hidden="true" style="color:var(--slate-400);"></i>
-          <code>github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
-          <span style="font-size:12px;color:var(--slate-500);margin-left:2px;">(fine-grained alternative)</span>
-        </div>
 
         <p id="tokenHelper" class="token-permissions-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <span>Easiest option: a <b>classic Personal Access Token</b> with the <b>repo</b> scope checked - it has no per-repo allow-list, so create-repo → upload index.html → enable Pages all run automatically with no extra steps on GitHub's side. If you'd rather use a <b>Fine-grained Personal Access Token</b>, set <b>Repository access</b> to <b>All repositories</b> (not "Only select repositories" - HoppingSite creates a brand-new repo for you, and a select-repos token can never write to a repo that didn't exist when it was created) and set <b>Administration</b> + <b>Contents</b> to Read &amp; Write. Either type can also get <b>Pages</b> (Read &amp; Write), but GitHub's API doesn't reliably support enabling Pages with fine-grained tokens, so HoppingSite will fall back to a one-click manual step if that happens. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
+          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Repository access: All repositories</b>, and <b>Administration</b> + <b>Contents</b> set to Read &amp; Write. Adding <b>Pages</b> (Read &amp; Write) is optional - HoppingSite falls back to a one-click manual step if GitHub's API doesn't support it for this token. Your token is saved with <code>localStorage</code> in this browser only - never written into this page, committed to Git, or sent anywhere except directly to GitHub's API.</span>
         </p>
       </section>
 
@@ -971,7 +1023,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
           <input type="text" id="domainInput" placeholder="examplesite" maxlength="40"
                  autocomplete="off" autocapitalize="off" spellcheck="false"
                  aria-describedby="domainHelper" aria-label="Desired subdomain name">
-          <span class="domain-suffix">.hoppingsite.github.io</span>
+          <span class="domain-suffix" id="domainSuffix">.github.io</span>
         </div>
         <div class="helper-row">
           <span id="domainCharCount">0 / 40</span>
@@ -981,7 +1033,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <div class="live-preview">
           <i class="fa-solid fa-globe" aria-hidden="true"></i>
           <span class="live-preview-url" id="livePreviewUrl">
-            <span class="muted">hoppingsite.github.io/</span><span class="name" id="livePreviewName">yoursite</span>
+            <span class="muted" id="livePreviewOwner">yourname.github.io/</span><span class="name" id="livePreviewName">yoursite</span>
           </span>
         </div>
 
@@ -1088,7 +1140,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <div class="card" style="padding:20px;text-align:center;">
         <div class="card-icon" style="margin:0 auto 12px;background:var(--yellow-500);box-shadow:0 4px 12px rgba(255,193,7,.3);"><i class="fa-solid fa-signature" aria-hidden="true"></i></div>
         <h3 style="font-size:14.5px;margin:0 0 6px;">Name it</h3>
-        <p style="font-size:13px;color:var(--slate-500);margin:0;">Pick a free hoppingsite.github.io address.</p>
+        <p style="font-size:13px;color:var(--slate-500);margin:0;">Pick a free name for your github.io address.</p>
       </div>
       <div class="card" style="padding:20px;text-align:center;">
         <div class="card-icon" style="margin:0 auto 12px;"><i class="fa-solid fa-rocket" aria-hidden="true"></i></div>
@@ -1145,11 +1197,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 <!-- ============ DEPLOY OVERLAY ============ -->
 <div class="overlay" id="deployOverlay" role="dialog" aria-modal="true" aria-labelledby="deployTitle">
   <div class="deploy-panel" id="deployPanel">
+    <div class="deploy-panel-controls" id="deployPanelControls">
+      <button type="button" id="deployMinimizeBtn" aria-label="Minimize" title="Minimize"><i class="fa-solid fa-minus" aria-hidden="true"></i></button>
+      <button type="button" id="deployCloseBtn" aria-label="Close" title="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
     <!-- deploying state -->
     <div id="deployingState">
       <div class="deploy-orbit"><div class="ring"></div><div class="core"><i class="fa-brands fa-github" aria-hidden="true"></i></div></div>
       <div class="deploy-title" id="deployTitle">Publishing your site</div>
       <div class="deploy-status" id="deployStatus">Initializing repository…</div>
+      <div class="deploy-timer" id="deployTimer">Elapsed 0s · usually finishes in ~20s</div>
       <div class="progress-rail"><div class="progress-fill" id="progressFill"></div></div>
       <div class="progress-pct"><b id="progressPct">0</b>% complete</div>
       <div class="deploy-log" id="deployLog"></div>
@@ -1163,7 +1220,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
       <div class="url-box">
         <i class="fa-solid fa-link" aria-hidden="true"></i>
-        <a id="successUrl" href="#" target="_blank" rel="noopener">https://hoppingsite.github.io/yoursite</a>
+        <a id="successUrl" href="#" target="_blank" rel="noopener">https://yourname.github.io/yoursite</a>
         <button type="button" class="copy-btn" id="copyLinkBtn" aria-label="Copy link"><i class="fa-solid fa-copy" aria-hidden="true"></i></button>
       </div>
 
@@ -1191,12 +1248,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   </div>
 </div>
 
+<!-- Floating pill shown while a deploy is minimized -->
+<div class="deploy-pill" id="deployPill" role="button" tabindex="0" aria-label="Restore publish progress">
+  <div class="deploy-pill-ring" id="deployPillRing" style="--pill-pct:0;"><i class="fa-solid fa-github" aria-hidden="true"></i></div>
+  <div class="deploy-pill-text">Publishing…<span id="deployPillPct">0% · 0s</span></div>
+  <button type="button" class="deploy-pill-close" id="deployPillCloseBtn" aria-label="Cancel and close">
+    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+  </button>
+</div>
+
 <!-- ============ AVAILABILITY WARNING MODAL ============ -->
 <div class="modal-backdrop" id="unavailableModal" role="dialog" aria-modal="true" aria-labelledby="unavailableTitle">
   <div class="modal-box">
     <div class="modal-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></div>
     <h3 id="unavailableTitle">That address is taken</h3>
-    <p id="unavailableText"><strong>hoppingsite.github.io/examplesite</strong> is already in use. Try one of these instead, or tweak your name.</p>
+    <p id="unavailableText"><strong>examplesite</strong> is already in use. Try one of these instead, or tweak your name.</p>
     <div class="suggestion-chips" id="suggestionChips"></div>
     <button type="button" class="btn btn-secondary" style="width:100%;" id="unavailableCloseBtn">Choose another name</button>
   </div>
@@ -1213,7 +1279,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    Configuration objects - structured for future backend/API swap
    ============================================================ */
 const HoppingSiteConfig = {
-  brand:{ name:"HoppingSite", domainRoot:"hoppingsite.github.io" },
+  brand:{ name:"HoppingSite" },
   upload:{ finalFileName:"index.html", acceptedExt:[".html",".htm"], maxSizeBytes: 25 * 1024 * 1024 },
   domain:{ minLen:3, maxLen:40, pattern:/^[a-z0-9-]+$/ },
   expiration:{
@@ -1277,8 +1343,11 @@ const HoppingSiteConfig = {
   }
 };
 
-// Tracks repos this browser session has itself created, so re-publishing
-// to the same name is recognized as "update my site", not "name taken".
+// Names this exact browser session has successfully published. Publishing
+// is one-shot and permanent - this set is never used to allow a second
+// publish to the same name. It exists purely so the "name_taken" message
+// can tell the person "you already published this - it's done and can't
+// be changed" instead of the generic "someone else already has this name".
 const sessionOwnedRepos = new Set();
 
 /* ============================================================
@@ -1491,12 +1560,6 @@ const GitHubClient = (function(){
    * created - there is nothing left to fix by the time upload runs.
    */
 
-  /** GET current index.html sha, if it exists (needed to update vs. create). */
-  async function getExistingFileSha(owner, name){
-    const res = await request(`/repos/${owner}/${name}/contents/index.html`, { method:"GET" });
-    return res.ok && res.body && res.body.sha ? res.body.sha : null;
-  }
-
   function toBase64(str){
     // Handles UTF-8 content safely (emoji, non-Latin chars, etc.)
     const bytes = new TextEncoder().encode(str);
@@ -1506,21 +1569,18 @@ const GitHubClient = (function(){
   }
 
   /**
-   * PUT /repos/{owner}/{repo}/contents/index.html
-   * Creates the file on first publish, or overwrites it (same repo, same
-   * URL) on every subsequent publish to the same name - this is what
-   * makes re-uploading replace the previous index.html in place.
+   * PUT /repos/{owner}/{repo}/contents/index.html - creates the file.
+   * One-shot publishing guarantees this repo was just created fresh, so
+   * index.html can never already exist here; no sha/update branch needed.
    */
   async function upsertIndexHtml(owner, name, htmlContent){
-    const existingSha = await getExistingFileSha(owner, name);
     return request(`/repos/${owner}/${name}/contents/index.html`, {
       method:"PUT",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({
-        message: existingSha ? "Update index.html via HoppingSite" : "Initial publish via HoppingSite",
+        message: "Initial publish via HoppingSite",
         content: toBase64(htmlContent),
-        branch:"main",
-        ...(existingSha ? { sha:existingSha } : {})
+        branch:"main"
       })
     });
   }
@@ -1654,7 +1714,7 @@ const GitHubClient = (function(){
     return null;
   }
 
-  async function publishSite({ name, htmlContent, isUpdateToOwnSite }, onStage){
+  async function publishSite({ name, htmlContent }, onStage){
     try{
       onStage("init");
 
@@ -1677,9 +1737,14 @@ const GitHubClient = (function(){
       const existing = await getRepo(owner, name);
       const existingFailure = classifyFailure(existing);
       if(existingFailure) return existingFailure;
-      if(existing.ok && !isUpdateToOwnSite){
-        // Repo already exists and this session didn't create it - treat
-        // the custom name as taken, same as the domain-availability check.
+      if(existing.ok){
+        // One-shot publishing: a name that already has a repo - whether
+        // this exact browser session created it or not - is permanently
+        // taken. There is no "update my own site" path any more; once a
+        // name is published it can never be republished, edited, or
+        // reverted. This is intentional (see point 3): treating "I
+        // published this" as special would let the same tab silently
+        // overwrite a live site, which is exactly what we no longer want.
         return { ok:false, reason:"name_taken" };
       }
       if(!existing.ok && existing.status !== 404){
@@ -1689,23 +1754,19 @@ const GitHubClient = (function(){
         // 422 and get misreported as name_taken.
         return { ok:false, reason:"error", message: existing.body?.message || "Could not check GitHub for that repository." };
       }
-      let justCreated = false;
-      if(!existing.ok){
-        const created = await createRepo(name);
-        const createdFailure = classifyFailure(created);
-        if(createdFailure) return createdFailure;
-        if(!created.ok){
-          if(created.status === 422){
-            // GitHub itself reports the name collides with something
-            // this token can see (e.g. org-level conflict).
-            return { ok:false, reason:"name_taken" };
-          }
-          return { ok:false, reason:"error", message: created.body?.message || "Could not create the repository." };
+      const created = await createRepo(name);
+      const createdFailure = classifyFailure(created);
+      if(createdFailure) return createdFailure;
+      if(!created.ok){
+        if(created.status === 422){
+          // GitHub itself reports the name collides with something
+          // this token can see (e.g. org-level conflict).
+          return { ok:false, reason:"name_taken" };
         }
-        justCreated = true;
-        // Freshly created repos need a beat before contents/branches settle.
-        await new Promise(r => setTimeout(r, 800));
+        return { ok:false, reason:"error", message: created.body?.message || "Could not create the repository." };
       }
+      // Freshly created repos need a beat before contents/branches settle.
+      await new Promise(r => setTimeout(r, 800));
 
       onStage("upload");
       let committed = await upsertIndexHtml(owner, name, htmlContent);
@@ -1733,7 +1794,7 @@ const GitHubClient = (function(){
       // "All repositories" access (or use a classic PAT with the "repo"
       // scope, which has no per-repo allow-list at all).
       // ----------------------------------------------------------------
-      if(!committed.ok && committed.forbidden && justCreated){
+      if(!committed.ok && committed.forbidden){
         // One retry after a longer beat rules out ordinary propagation
         // delay before we commit to the repo-list diagnosis.
         await new Promise(r => setTimeout(r, 1500));
@@ -1891,10 +1952,14 @@ const state = {
   domainName:"",
   domainStatus:"idle", // idle | checking | available | unavailable | invalid
   expiration: HoppingSiteConfig.expiration.default,
-  // Set once this session has successfully published a given name, so a
-  // second publish to the same name is treated as "update my site" and
-  // reuses the same repository/URL instead of failing as "taken".
-  publishedRepoName:null
+  // The connected token's real GitHub login, once resolved - used to show
+  // the true "{login}.github.io/{name}" address instead of a guess.
+  lastOwnerLogin:null,
+  // Names this session has successfully published - permanent, one-shot.
+  // A name in this set can never be republished or updated (see point 3
+  // below); it exists purely so the UI can explain *why* a name that
+  // now shows "taken" is actually the user's own already-finished site.
+  publishedRepoNames: new Set()
 };
 
 /* ============================================================
@@ -2225,6 +2290,7 @@ const domainRow = $("#domainRow");
 const domainStatusIcon = $("#domainStatusIcon");
 const domainMsgWrap = $("#domainMsgWrap");
 const livePreviewName = $("#livePreviewName");
+const livePreviewOwner = $("#livePreviewOwner");
 const domainCharCount = $("#domainCharCount");
 
 function setDomainMessage(text, type){
@@ -2250,6 +2316,7 @@ function sanitizeDomainInput(raw){
 
 function updateLivePreview(name){
   livePreviewName.textContent = name || "yoursite";
+  livePreviewOwner.textContent = (state.lastOwnerLogin || "yourname") + ".github.io/";
 }
 
 const checkAvailability = debounce(async function(name){
@@ -2269,22 +2336,26 @@ const checkAvailability = debounce(async function(name){
   }
 
   // Real check against GitHub: does a repo with this name already exist
-  // under this token's own account? A name this session already
-  // published to is always treated as available (re-publishing
-  // overwrites in place).
+  // under this token's own account? Publishing is one-shot and permanent
+  // (see point 3) - a name this session already published to is still
+  // reported as taken, just with a distinct message explaining why.
   //
   // NOTE: In production, swap this for a call to your backend instead:
   //   fetch(HoppingSiteConfig.api.baseUrl + HoppingSiteConfig.api.endpoints.checkAvailability, {
   //     method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ name })
   //   }).then(r => r.json()).then(data => { ...use data.available... });
   let taken = false;
+  let alreadyPublishedByMe = false;
   let authFailed = false;
   let forbidden = false;
   let rateLimited = false;
   let networkFailed = false;
   let failureMessage = "";
+  let resolvedLogin = null;
   if(sessionOwnedRepos.has(name)){
-    taken = false;
+    taken = true;
+    alreadyPublishedByMe = true;
+    resolvedLogin = state.lastOwnerLogin || null;
   } else {
     const ownerRes = await GitHubClient.getOwner();
     if(ownerRes.authError){
@@ -2300,6 +2371,8 @@ const checkAvailability = debounce(async function(name){
       networkFailed = true;
       failureMessage = ownerRes.message || "Couldn't verify your GitHub account. You can still try publishing.";
     } else {
+    resolvedLogin = ownerRes.login;
+    state.lastOwnerLogin = ownerRes.login;
     const res = await GitHubClient.getRepo(ownerRes.login, name);
     if(res.authError){
       authFailed = true;
@@ -2367,15 +2440,22 @@ const checkAvailability = debounce(async function(name){
     domainRow.classList.add("is-invalid");
     domainRow.classList.remove("is-valid");
     setDomainStatusIcon("unavailable");
-    setDomainMessage(`"${name}" is already taken. Try a different name.`, "error");
-    openUnavailableModal(name);
+    if(alreadyPublishedByMe){
+      const liveUrl = resolvedLogin ? `${resolvedLogin}.github.io/${name}` : `${name}`;
+      setDomainMessage(`You already published "${name}" - it's live at ${liveUrl} and can't be republished or changed. Pick a different name for a new site.`, "error");
+    } else {
+      setDomainMessage(`"${name}" is already taken. Try a different name.`, "error");
+      openUnavailableModal(name);
+    }
   } else {
     state.domainStatus = "available";
     domainRow.classList.add("is-valid");
     domainRow.classList.remove("is-invalid");
     setDomainStatusIcon("available");
-    setDomainMessage(`hoppingsite.github.io/${name} is available!`, "success");
+    const previewUrl = resolvedLogin ? `${resolvedLogin}.github.io/${name}` : `github.io/${name}`;
+    setDomainMessage(`${previewUrl} is available!`, "success");
   }
+  updateLivePreview(name);
   updateSummary();
   updatePublishState();
 });
@@ -2422,7 +2502,7 @@ const unavailableText = $("#unavailableText");
 const suggestionChips = $("#suggestionChips");
 
 function openUnavailableModal(name){
-  unavailableText.innerHTML = `<strong>hoppingsite.github.io/${name}</strong> is already in use. Try one of these instead, or tweak your name.`;
+  unavailableText.innerHTML = `<strong>${name}</strong> is already in use. Try one of these instead, or tweak your name.`;
   const suggestions = [`${name}-site`, `${name}${Math.floor(Math.random()*89+10)}`, `my-${name}`, `${name}-hq`];
   suggestionChips.innerHTML = "";
   suggestions.forEach(s=>{
@@ -2483,7 +2563,8 @@ function updateSummary(){
 
   const domainEl = $("#sumDomain");
   if(state.domainName && state.domainStatus === "available"){
-    domainEl.textContent = `hoppingsite.github.io/${state.domainName}`;
+    const ownerLabel = state.lastOwnerLogin || "yourname";
+    domainEl.textContent = `${ownerLabel}.github.io/${state.domainName}`;
     domainEl.classList.remove("pending");
   } else {
     domainEl.textContent = "Not chosen yet";
@@ -2543,11 +2624,28 @@ const deployStatus = $("#deployStatus");
 const progressFill = $("#progressFill");
 const progressPct = $("#progressPct");
 const deployLog = $("#deployLog");
+const deployTimerEl = $("#deployTimer");
+const deployPanelControls = $("#deployPanelControls");
+const deployMinimizeBtn = $("#deployMinimizeBtn");
+const deployCloseBtn = $("#deployCloseBtn");
+const deployPill = $("#deployPill");
+const deployPillRing = $("#deployPillRing");
+const deployPillPct = $("#deployPillPct");
+const deployPillCloseBtn = $("#deployPillCloseBtn");
 
 let deployStartTime = null;
 // Gently animates the progress bar toward (but never past) a stage's target
 // percentage while we wait on a real API call, so motion never looks frozen.
 let creepTimer = null;
+// Ticks once a second while deploying so the elapsed-time readout (both in
+// the full panel and the minimized pill) stays live regardless of whether
+// the panel or the pill is what's currently visible.
+let elapsedTimer = null;
+let lastKnownPct = 0;
+// Real deploy time varies with GitHub's API/Pages build latency, so this is
+// framed as "usually finishes in ~Xs" rather than a countdown that would
+// lie if a real call runs long.
+const TYPICAL_DEPLOY_SECONDS = 20;
 
 function stageByKey(key){
   return HoppingSiteConfig.deployment.stages.find(s => s.key === key);
@@ -2567,6 +2665,38 @@ function logStage(message, marks_done_previous){
 function setProgress(pct){
   progressFill.style.width = pct.toFixed(1) + "%";
   progressPct.textContent = Math.floor(pct);
+  lastKnownPct = pct;
+  deployPillRing.style.setProperty("--pill-pct", Math.floor(pct));
+  updatePillText();
+}
+
+function updatePillText(){
+  const sec = deployStartTime ? Math.max(0, Math.round((performance.now() - deployStartTime) / 1000)) : 0;
+  deployPillPct.textContent = `${Math.floor(lastKnownPct)}% · ${formatElapsed(sec)}`;
+}
+
+function formatElapsed(sec){
+  if(sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}m ${s}s`;
+}
+
+function startElapsedTimer(){
+  stopElapsedTimer();
+  elapsedTimer = setInterval(()=>{
+    if(!deployStartTime) return;
+    const sec = Math.max(0, Math.round((performance.now() - deployStartTime) / 1000));
+    const elapsedStr = formatElapsed(sec);
+    deployTimerEl.textContent = sec < TYPICAL_DEPLOY_SECONDS
+      ? `Elapsed ${elapsedStr} · usually finishes in ~${TYPICAL_DEPLOY_SECONDS}s`
+      : `Elapsed ${elapsedStr} · almost there…`;
+    updatePillText();
+  }, 1000);
+}
+
+function stopElapsedTimer(){
+  clearInterval(elapsedTimer);
+  elapsedTimer = null;
 }
 
 function onDeployStage(key){
@@ -2598,12 +2728,70 @@ function resetDeployPanel(){
   setProgress(0);
   deployLog.innerHTML = "";
   $("#pagesManualStepNote").classList.add("hidden");
+  deployOverlay.classList.remove("minimized");
+  deployPill.classList.remove("show");
+  deployTimerEl.textContent = `Elapsed 0s · usually finishes in ~${TYPICAL_DEPLOY_SECONDS}s`;
+  startElapsedTimer();
 }
 
 function unlockControls(){
   Array.from(deployForm.elements).forEach(elm => elm.disabled = false);
   updatePublishState();
 }
+
+/**
+ * Minimize/close controls for the deploy overlay.
+ *
+ * A publish already in flight can't be cancelled mid-write (GitHub is
+ * mid-API-call and there's nothing to roll back to), so both the minimize
+ * pill and the panel's close button only ever HIDE the UI - they never
+ * abort GitHubClient.publishSite/retryUploadAndFinish, and they never
+ * unlock the form while a request is genuinely still outstanding. The
+ * deploy keeps running in the background either way; minimizing just lets
+ * the person keep browsing the page while they wait, and closing dismisses
+ * the overlay for good (the eventual success/failure still shows as a
+ * snackbar so nothing gets silently lost).
+ */
+function isDeployInFlight(){
+  return deployingState && !deployingState.classList.contains("hidden")
+    && deployOverlay.classList.contains("show");
+}
+
+deployMinimizeBtn.addEventListener("click", ()=>{
+  deployOverlay.classList.add("minimized");
+  deployPill.classList.add("show");
+  updatePillText();
+});
+
+function restoreFromPill(){
+  deployOverlay.classList.remove("minimized");
+  deployPill.classList.remove("show");
+}
+deployPill.addEventListener("click", (e)=>{
+  if(e.target.closest("#deployPillCloseBtn")) return;
+  restoreFromPill();
+});
+deployPill.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); restoreFromPill(); }
+});
+
+function dismissDeployOverlay(){
+  deployOverlay.classList.remove("show");
+  deployOverlay.classList.remove("minimized");
+  deployPill.classList.remove("show");
+  // The panel is hidden, not the request - if a publish is still running,
+  // leave the form locked so a second submit can't race the first, and let
+  // the eventual snackbar report the real outcome.
+  if(!isDeployInFlight()){
+    stopElapsedTimer();
+  }
+}
+
+deployCloseBtn.addEventListener("click", dismissDeployOverlay);
+deployPillCloseBtn.addEventListener("click", (e)=>{
+  e.stopPropagation();
+  dismissDeployOverlay();
+});
 
 /**
  * reason:"repo_access_gap" recovery UI. GitHub gives no API way to add a
@@ -2638,6 +2826,7 @@ function showRepoAccessGap(result){
     publishBtn.disabled = true;
     Array.from(deployForm.elements).forEach(elm => elm.disabled = true);
     deployOverlay.classList.add("show");
+    if(!deployStartTime) deployStartTime = performance.now();
     resetDeployPanel();
 
     const retryResult = await GitHubClient.retryUploadAndFinish(
@@ -2646,9 +2835,12 @@ function showRepoAccessGap(result){
     );
 
     clearInterval(creepTimer);
+    stopElapsedTimer();
 
     if(!retryResult.ok){
       deployOverlay.classList.remove("show");
+      deployOverlay.classList.remove("minimized");
+      deployPill.classList.remove("show");
       unlockControls();
       retryBtn.disabled = false;
       retryBtn.innerHTML = `<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Retry upload`;
@@ -2667,27 +2859,29 @@ function showRepoAccessGap(result){
     const lastCur = deployLog.querySelector(".cur");
     if(lastCur){ lastCur.classList.remove("cur"); lastCur.classList.add("ok"); lastCur.innerHTML = `<i class="fa-solid fa-check" style="margin-right:5px;"></i>${lastCur.dataset.label}`; }
 
-    state.publishedRepoName = result.name;
+    state.publishedRepoNames.add(result.name);
     setTimeout(()=> showSuccess(retryResult), 500);
   });
 }
 
 async function runDeployment(){
-  resetDeployPanel();
   deployStartTime = performance.now();
+  resetDeployPanel();
 
   const name = state.domainName;
-  const isUpdateToOwnSite = state.publishedRepoName === name || sessionOwnedRepos.has(name);
 
   const result = await GitHubClient.publishSite(
-    { name, htmlContent: state.fileContent, isUpdateToOwnSite },
+    { name, htmlContent: state.fileContent },
     onDeployStage
   );
 
   clearInterval(creepTimer);
+  stopElapsedTimer();
 
   if(!result.ok){
     deployOverlay.classList.remove("show");
+    deployOverlay.classList.remove("minimized");
+    deployPill.classList.remove("show");
     unlockControls();
 
     if(result.reason === "name_taken"){
@@ -2736,11 +2930,13 @@ async function runDeployment(){
   const lastCur = deployLog.querySelector(".cur");
   if(lastCur){ lastCur.classList.remove("cur"); lastCur.classList.add("ok"); lastCur.innerHTML = `<i class="fa-solid fa-check" style="margin-right:5px;"></i>${lastCur.dataset.label}`; }
 
-  state.publishedRepoName = name;
+  state.publishedRepoNames.add(name);
   setTimeout(()=> showSuccess(result), 500);
 }
 
 function showSuccess(result){
+  deployOverlay.classList.remove("minimized");
+  deployPill.classList.remove("show");
   deployingState.classList.add("hidden");
   successState.classList.remove("hidden");
 
@@ -2812,9 +3008,11 @@ $("#shareBtn").addEventListener("click", async ()=>{
 $("#publishAnotherBtn").addEventListener("click", ()=>{
   deployOverlay.classList.remove("show");
 
-  // reset the form for a new publish - note we deliberately do NOT clear
-  // state.publishedRepoName or sessionOwnedRepos, since those reflect real
-  // repositories that still exist on GitHub from this session.
+  // reset the form so the person can publish a brand-new, separate site.
+  // We deliberately do NOT clear state.publishedRepoNames or
+  // sessionOwnedRepos - the previous name is permanently published and
+  // done; those sets exist so trying that same name again clearly
+  // explains it's already live, instead of just saying "taken".
   state.file = null;
   state.fileContent = null;
   state.domainName = "";
