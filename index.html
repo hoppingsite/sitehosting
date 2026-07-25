@@ -384,6 +384,58 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .helper-row{ display:flex; justify-content:space-between; margin-top:8px; font-size:12px; color:var(--slate-400); font-family:var(--font-mono); }
 
+/* ============================================================
+   GitHub token card
+   ============================================================ */
+.token-input-row{
+  display:flex; align-items:stretch;
+  border:1.5px solid var(--slate-200); border-radius:var(--radius-md);
+  overflow:hidden; background:var(--surface-2);
+  transition:border-color .2s var(--ease-out), box-shadow .2s var(--ease-out);
+}
+.token-input-row:focus-within{ border-color:var(--blue-600); box-shadow:var(--shadow-focus); background:var(--surface); }
+.token-input-row.is-invalid{ border-color:var(--danger); }
+.token-input-row.is-valid{ border-color:var(--success); }
+.token-input-row input{
+  flex:1; min-width:0; border:none; background:transparent; outline:none;
+  padding:14px 4px 14px 16px; font-family:var(--font-mono); font-size:13.5px; color:var(--ink-900);
+  letter-spacing:.01em;
+}
+.token-input-row input::placeholder{ color:var(--slate-400); }
+.token-visibility-btn{
+  flex:none; width:44px; border:none; background:transparent; cursor:pointer;
+  color:var(--slate-400); font-size:14px; transition:color .18s;
+}
+.token-visibility-btn:hover{ color:var(--blue-600); }
+
+.token-status-pill{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:var(--radius-pill);
+  margin-top:12px;
+}
+.token-status-pill.saved{ background:var(--success-bg); color:#067647; }
+.token-status-pill.missing{ background:var(--warning-bg); color:#B45309; }
+.token-status-pill.invalid{ background:var(--danger-bg); color:#B42318; }
+.token-status-pill .fa-solid{ font-size:11px; }
+
+.token-example-row{
+  display:flex; align-items:center; gap:10px; margin-top:14px;
+  background:var(--slate-100); border-radius:10px; padding:10px 12px;
+}
+.token-example-row code{
+  flex:1; min-width:0; font-family:var(--font-mono); font-size:11.5px; color:var(--slate-500);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.token-example-row .copy-btn{ width:32px; height:32px; }
+
+.token-permissions-note{
+  display:flex; align-items:flex-start; gap:8px; margin-top:14px;
+  font-size:12.5px; color:var(--slate-500); line-height:1.5;
+}
+.token-permissions-note .fa-solid{ margin-top:2px; color:var(--blue-400); flex:none; }
+.token-permissions-note b{ color:var(--ink-900); }
+
+
 /* Expiration chips */
 .expiry-grid{
   display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:4px;
@@ -829,6 +881,51 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   <div class="container">
     <form class="flow" id="deployForm" novalidate>
 
+      <!-- STEP 0 - GitHub Token -->
+      <section class="card" id="token-card">
+        <div class="card-head">
+          <div class="card-icon"><i class="fa-brands fa-github" aria-hidden="true"></i></div>
+          <div class="card-title">
+            <h2>GitHub API Token</h2>
+            <span>Stored only on your device - never in this file or Git</span>
+          </div>
+        </div>
+
+        <div class="token-input-row" id="tokenRow">
+          <input type="password" id="tokenInput" placeholder="Paste your GitHub Fine-grained Personal Access Token"
+                 autocomplete="off" autocapitalize="off" spellcheck="false"
+                 aria-describedby="tokenHelper" aria-label="GitHub Fine-grained Personal Access Token">
+          <button type="button" class="token-visibility-btn" id="tokenVisibilityBtn" aria-label="Show token">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="tokenMsgWrap" aria-live="polite"></div>
+
+        <div class="btn-row" style="margin-top:14px;">
+          <button type="button" class="btn btn-primary btn-sm" id="saveTokenBtn" style="flex:1;">
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Token
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="clearTokenBtn" style="flex:1;">
+            <i class="fa-solid fa-trash" aria-hidden="true"></i> Clear Token
+          </button>
+        </div>
+
+        <div id="tokenStatusWrap"></div>
+
+        <div class="token-example-row">
+          <i class="fa-solid fa-code" aria-hidden="true" style="color:var(--slate-400);"></i>
+          <code id="tokenExampleText">github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+          <button type="button" class="copy-btn" id="copyExampleTokenBtn" aria-label="Copy example token format">
+            <i class="fa-solid fa-copy" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <p id="tokenHelper" class="token-permissions-note">
+          <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Administration</b>, <b>Contents</b>, and <b>Pages</b> set to Read &amp; Write. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
+        </p>
+      </section>
+
       <!-- STEP 1 - Upload -->
       <section class="card" id="upload-card">
         <div class="card-head">
@@ -963,7 +1060,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <button type="submit" class="btn btn-primary" id="publishBtn" disabled>
         <i class="fa-solid fa-rocket" aria-hidden="true"></i> Publish website
       </button>
-      <p style="text-align:center;font-size:12.5px;color:var(--slate-400);margin:2px 0 0;">
+      <div id="publishBlockedMsgWrap" aria-live="polite"></div>
+      <p id="publishFooterNote" style="text-align:center;font-size:12.5px;color:var(--slate-400);margin:2px 0 0;">
         <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Free forever · No account required · Open source
       </p>
 
@@ -1132,29 +1230,15 @@ const HoppingSiteConfig = {
   /* ================================================================
      GitHub integration configuration
      ================================================================
-     GITHUB_TOKEN is a PLACEHOLDER for local/demo use only.
-     -----------------------------------------------------------------
-     ⚠️ PRODUCTION WARNING:
-     A GitHub Personal Access Token must NEVER be embedded in frontend
-     JavaScript that ships to real users - anyone can open devtools and
-     read it. This placeholder exists purely so the deployment workflow
-     below is fully wired and testable end-to-end.
-
-     Before going to production, replace every direct "api.github.com"
-     call in GitHubClient with a call to your OWN backend (see
-     HoppingSiteConfig.api.endpoints below). Your backend holds the real
-     token server-side, performs the GitHub API calls, and returns only
-     the results (repo status, Pages URL, build status) to this
-     frontend. The UI/workflow logic does not need to change - only the
-     request destinations inside GitHubClient.
+     There is no token here anymore. Each user pastes their own
+     Fine-grained Personal Access Token into the "GitHub API Token"
+     card at the top of the page; it is saved with TokenStore (below)
+     directly to this browser's localStorage and never touches this
+     file, JavaScript source, Git history, or any downloadable output.
+     GitHubClient reads the token fresh from TokenStore on every
+     request instead of from a hardcoded constant.
      ================================================================ */
   github:{
-    // Publishing will fail with a "not connected to GitHub" message until
-    // this placeholder is replaced with a real Fine-grained Personal
-    // Access Token (Administration: Read & Write, Contents: Read & Write,
-    // Pages: Read & Write) - demo/local use only, see the production
-    // warning above - or the app is wired to a backend.
-    GITHUB_TOKEN: "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",
     owner: "hoppingsite",
     apiBase: "https://api.github.com",
     pagesPollIntervalMs: 3000,
@@ -1162,7 +1246,8 @@ const HoppingSiteConfig = {
   },
   // ---- Backend integration placeholders for a real production setup ----
   // Once a backend exists, point GitHubClient's fetch calls at these
-  // instead of api.github.com directly, and delete GITHUB_TOKEN above.
+  // instead of api.github.com directly - the backend can hold a shared
+  // token server-side instead of relying on each visitor's own token.
   api:{
     baseUrl: "/api",
     endpoints:{
@@ -1180,27 +1265,67 @@ const HoppingSiteConfig = {
 const sessionOwnedRepos = new Set();
 
 /* ============================================================
+   TokenStore - the ONLY place that reads/writes the GitHub token.
+   ============================================================
+   The token lives exclusively in this browser's localStorage under
+   TokenStore.KEY. It is never embedded in this file, never sent
+   anywhere but https://api.github.com, and never included in any
+   file this app generates or lets the user download.
+   ============================================================ */
+const TokenStore = (function(){
+  const KEY = "hoppingsite_github_token";
+  const PREFIX = "github_pat_";
+
+  function get(){
+    try{ return localStorage.getItem(KEY) || ""; }
+    catch(e){ return ""; } // localStorage unavailable (private mode, etc)
+  }
+  function set(token){
+    try{ localStorage.setItem(KEY, token); return true; }
+    catch(e){ return false; }
+  }
+  function clear(){
+    try{ localStorage.removeItem(KEY); return true; }
+    catch(e){ return false; }
+  }
+  function has(){ return get().length > 0; }
+  function isValidFormat(token){ return typeof token === "string" && token.startsWith(PREFIX) && token.length > PREFIX.length; }
+
+  return { get, set, clear, has, isValidFormat, PREFIX };
+})();
+
+/* ============================================================
    GitHubClient - the real deployment workflow
    ============================================================
    Every method here talks directly to api.github.com using
-   HoppingSiteConfig.github.GITHUB_TOKEN. This is the piece that
-   MUST move to a backend before shipping to real users - see the
-   warning above HoppingSiteConfig.github. Nothing else in this file
-   needs to know how deployment happens internally; it only calls
-   GitHubClient.publishSite(...) and reacts to the result.
+   whatever token TokenStore currently holds, read fresh on every
+   single request - never cached in a constant. Nothing else in
+   this file needs to know how deployment happens internally; it
+   only calls GitHubClient.publishSite(...)/getRepo(...) and reacts
+   to the result.
    ============================================================ */
 const GitHubClient = (function(){
   const cfg = HoppingSiteConfig.github;
 
   function authHeaders(){
     return {
-      "Authorization": `Bearer ${cfg.GITHUB_TOKEN}`,
+      "Authorization": `Bearer ${TokenStore.get()}`,
       "Accept": "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28"
     };
   }
 
   async function request(path, options={}){
+    if(!TokenStore.has()){
+      // Never even attempt the call without a token - surface the same
+      // shape of result the rest of the app already knows how to handle.
+      return {
+        ok:false, status:0, body:null,
+        authError:true, noToken:true,
+        message:"Add your GitHub token above before publishing."
+      };
+    }
+
     let res;
     try{
       res = await fetch(`${cfg.apiBase}${path}`, {
@@ -1211,6 +1336,7 @@ const GitHubClient = (function(){
       // The request never reached GitHub at all (offline, DNS, CORS, etc).
       // This is NOT an auth problem, so it must never be reported as one.
       return {
+
         ok:false, status:0, body:null,
         networkError:true,
         message:"Couldn't reach GitHub. Check your connection and try again."
@@ -1221,14 +1347,15 @@ const GitHubClient = (function(){
     try{ body = await res.json(); }catch(e){ /* some endpoints return no body */ }
 
     if(res.status === 401){
-      // GitHub rejected the token itself (missing, expired, revoked, or
-      // still a placeholder). Every publish step relies on this token, so
-      // surface one clear, actionable message instead of GitHub's raw
-      // "Bad credentials" text, which means nothing to an end user.
+      // GitHub rejected the token itself (expired, revoked, or malformed).
+      // Surface GitHub's real reason alongside a clear, actionable next
+      // step pointing at the in-page token card instead of a vague
+      // "not connected" message.
+      const ghMessage = (body && body.message) || "Bad credentials";
       return {
         ok:false, status:401, body,
-        authError:true,
-        message:"HoppingSite isn't connected to a working GitHub account yet. Add a valid GitHub token in the site configuration to enable publishing."
+        authError:true, tokenInvalid:true,
+        message:`GitHub rejected this token: ${ghMessage}. Replace it in the GitHub API Token section above.`
       };
     }
 
@@ -1376,7 +1503,7 @@ const GitHubClient = (function(){
   // was a normal (non-special-case) failure, so the caller falls back to
   // its own status-specific handling (e.g. 422 = name_taken, 404 = ok).
   function classifyFailure(res){
-    if(res.authError)     return { ok:false, reason:"auth",        message: res.message };
+    if(res.authError)     return { ok:false, reason:"auth", message: res.message, noToken: !!res.noToken, tokenInvalid: !!res.tokenInvalid };
     if(res.forbidden)     return { ok:false, reason:"forbidden",   message: res.message };
     if(res.rateLimited)   return { ok:false, reason:"rate_limited",message: res.message };
     if(res.networkError)  return { ok:false, reason:"network",     message: res.message };
@@ -1661,6 +1788,152 @@ dropzone.addEventListener("keydown", (e)=>{
 });
 
 /* ============================================================
+   STEP 0 - GitHub Token logic
+   ============================================================
+   This is the only UI code that talks to TokenStore. Saving,
+   clearing, and validating the token format all happen here; the
+   token itself never leaves localStorage except inside the
+   Authorization header GitHubClient sends straight to GitHub.
+   ============================================================ */
+const tokenInput = $("#tokenInput");
+const tokenRow = $("#tokenRow");
+const tokenMsgWrap = $("#tokenMsgWrap");
+const tokenStatusWrap = $("#tokenStatusWrap");
+const tokenVisibilityBtn = $("#tokenVisibilityBtn");
+const saveTokenBtn = $("#saveTokenBtn");
+const clearTokenBtn = $("#clearTokenBtn");
+const copyExampleTokenBtn = $("#copyExampleTokenBtn");
+
+function setTokenMessage(text, type){
+  tokenMsgWrap.innerHTML = "";
+  if(!text) return;
+  const icon = type === "error" ? "fa-circle-exclamation" : "fa-circle-check";
+  tokenMsgWrap.appendChild(el("div", `field-msg ${type}`, `<i class="fa-solid ${icon}" aria-hidden="true"></i><span>${text}</span>`));
+}
+
+function renderTokenStatus(kind){
+  // kind: "saved" | "missing" | "invalid"
+  tokenStatusWrap.innerHTML = "";
+  const pills = {
+    saved:   { cls:"saved",   icon:"fa-circle-check",       text:"Token saved on this device" },
+    missing: { cls:"missing", icon:"fa-triangle-exclamation", text:"No token saved yet" },
+    invalid: { cls:"invalid", icon:"fa-circle-xmark",       text:"Saved token was rejected by GitHub - replace it below" }
+  };
+  const p = pills[kind] || pills.missing;
+  tokenStatusWrap.appendChild(el("span", `token-status-pill ${p.cls}`, `<i class="fa-solid ${p.icon}" aria-hidden="true"></i>${p.text}`));
+}
+
+function refreshTokenStatusFromStore(){
+  renderTokenStatus(TokenStore.has() ? "saved" : "missing");
+}
+
+// Called from anywhere in the app (e.g. a 401 during publish) so the
+// status pill and messaging reflect a token GitHub itself rejected,
+// without requiring a page refresh.
+function markSavedTokenInvalid(message){
+  renderTokenStatus("invalid");
+  tokenRow.classList.add("is-invalid");
+  tokenRow.classList.remove("is-valid");
+  setTokenMessage(message || "GitHub rejected this token. Paste a new one and save again.", "error");
+}
+
+saveTokenBtn.addEventListener("click", ()=>{
+  const value = tokenInput.value.trim();
+
+  if(!value){
+    tokenRow.classList.add("is-invalid");
+    tokenRow.classList.remove("is-valid");
+    setTokenMessage("Paste a token first.", "error");
+    return;
+  }
+  if(!TokenStore.isValidFormat(value)){
+    tokenRow.classList.add("is-invalid");
+    tokenRow.classList.remove("is-valid");
+    setTokenMessage(`A Fine-grained PAT starts with "${TokenStore.PREFIX}". Double-check what you pasted.`, "error");
+    return;
+  }
+
+  const saved = TokenStore.set(value);
+  if(!saved){
+    tokenRow.classList.add("is-invalid");
+    tokenRow.classList.remove("is-valid");
+    setTokenMessage("Couldn't save the token - this browser may be blocking local storage (e.g. private/incognito mode).", "error");
+    return;
+  }
+
+  tokenRow.classList.add("is-valid");
+  tokenRow.classList.remove("is-invalid");
+  setTokenMessage("Token saved on this device. It's never sent anywhere except GitHub's API.", "success");
+  refreshTokenStatusFromStore();
+  updateSummary();
+  updatePublishState();
+
+  // A token was just added/replaced - if a domain name is already
+  // typed in, re-run the availability check against the real API
+  // instead of leaving the stale "add your token" message showing.
+  const currentName = sanitizeDomainInput(domainInput.value);
+  if(currentName.length >= HoppingSiteConfig.domain.minLen){
+    checkAvailability(currentName);
+  }
+});
+
+clearTokenBtn.addEventListener("click", ()=>{
+  TokenStore.clear();
+  tokenInput.value = "";
+  tokenRow.classList.remove("is-valid","is-invalid");
+  setTokenMessage("Token cleared from this device.", "success");
+  refreshTokenStatusFromStore();
+  updateSummary();
+  updatePublishState();
+
+  // Without a token, any previous "available" result can no longer be
+  // trusted as current - fall back to the friendly no-token messaging.
+  if(state.domainStatus === "available" || state.domainStatus === "unavailable"){
+    state.domainStatus = "idle";
+    domainRow.classList.remove("is-valid","is-invalid");
+    setDomainStatusIcon("idle");
+    setDomainMessage("Add your GitHub token above to check availability. You can still try publishing once it's saved.", "error");
+  }
+});
+
+tokenVisibilityBtn.addEventListener("click", ()=>{
+  const showing = tokenInput.type === "text";
+  tokenInput.type = showing ? "password" : "text";
+  tokenVisibilityBtn.innerHTML = showing
+    ? `<i class="fa-solid fa-eye" aria-hidden="true"></i>`
+    : `<i class="fa-solid fa-eye-slash" aria-hidden="true"></i>`;
+  tokenVisibilityBtn.setAttribute("aria-label", showing ? "Show token" : "Hide token");
+});
+
+copyExampleTokenBtn.addEventListener("click", async ()=>{
+  const text = $("#tokenExampleText").textContent;
+  try{ await navigator.clipboard.writeText(text); }
+  catch(err){
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); ta.remove();
+  }
+  copyExampleTokenBtn.classList.add("copied");
+  copyExampleTokenBtn.innerHTML = `<i class="fa-solid fa-check" aria-hidden="true"></i>`;
+  showSnackbar("Example format copied - paste your real token, not this.", "info", 3000);
+  setTimeout(()=>{
+    copyExampleTokenBtn.classList.remove("copied");
+    copyExampleTokenBtn.innerHTML = `<i class="fa-solid fa-copy" aria-hidden="true"></i>`;
+  }, 1800);
+});
+
+// Auto-load: if a token is already saved from a previous visit, reflect
+// that in the UI immediately - the input stays empty/masked (the raw
+// value is never echoed back into the DOM at page load) but the status
+// pill and publish gating both already know a token is present.
+(function initTokenUI(){
+  refreshTokenStatusFromStore();
+  if(TokenStore.has()){
+    tokenRow.classList.add("is-valid");
+  }
+})();
+
+/* ============================================================
    STEP 2 - Domain logic
    ============================================================ */
 const domainInput = $("#domainInput");
@@ -1700,6 +1973,16 @@ const checkAvailability = debounce(async function(name){
   domainRow.classList.remove("is-valid","is-invalid");
   setDomainStatusIcon("checking");
   setDomainMessage("", null);
+
+  if(!TokenStore.has()){
+    // Don't even attempt the call - there's nothing GitHub could check
+    // without a token, so give the friendly, actionable message right away.
+    state.domainStatus = "idle";
+    setDomainStatusIcon("idle");
+    setDomainMessage("Add your GitHub token above to check availability. You can still try publishing once it's saved.", "error");
+    updateSummary(); updatePublishState();
+    return;
+  }
 
   // Real check against GitHub: does a repo with this name already exist
   // under the configured owner? A name this session already published to
@@ -1920,9 +2203,17 @@ function updateSummary(){
    Publish button enable/disable
    ============================================================ */
 const publishBtn = $("#publishBtn");
+const publishBlockedMsgWrap = $("#publishBlockedMsgWrap");
 function updatePublishState(){
-  const ready = !!state.file && state.domainStatus === "available";
+  const hasToken = TokenStore.has();
+  const ready = hasToken && !!state.file && state.domainStatus === "available";
   publishBtn.disabled = !ready;
+
+  publishBlockedMsgWrap.innerHTML = "";
+  if(!hasToken){
+    publishBlockedMsgWrap.appendChild(el("div", "field-msg error",
+      `<i class="fa-solid fa-key" aria-hidden="true"></i><span>Add your GitHub token above before publishing.</span>`));
+  }
 }
 
 /* ============================================================
@@ -2044,6 +2335,13 @@ async function runDeployment(){
       const msg = result.message || "HoppingSite isn't connected to a working GitHub account yet.";
       showSnackbar(msg, "err", 8000);
       setDomainMessage(msg, "error");
+      if(result.noToken){
+        setTokenMessage("Add your GitHub token above before publishing.", "error");
+        tokenInput.focus();
+      } else if(result.tokenInvalid){
+        markSavedTokenInvalid(msg);
+      }
+      updatePublishState();
     } else if(result.reason === "forbidden"){
       const msg = result.message || "This GitHub token doesn't have permission to do that.";
       showSnackbar(msg, "err", 8000);
