@@ -892,9 +892,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         </div>
 
         <div class="token-input-row" id="tokenRow">
-          <input type="password" id="tokenInput" placeholder="Paste your GitHub Fine-grained Personal Access Token"
+          <input type="password" id="tokenInput" placeholder="Paste your GitHub Personal Access Token (classic or fine-grained)"
                  autocomplete="off" autocapitalize="off" spellcheck="false"
-                 aria-describedby="tokenHelper" aria-label="GitHub Fine-grained Personal Access Token">
+                 aria-describedby="tokenHelper" aria-label="GitHub Personal Access Token">
           <button type="button" class="token-visibility-btn" id="tokenVisibilityBtn" aria-label="Show token">
             <i class="fa-solid fa-eye" aria-hidden="true"></i>
           </button>
@@ -914,15 +914,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <div class="token-example-row">
           <i class="fa-solid fa-code" aria-hidden="true" style="color:var(--slate-400);"></i>
-          <code id="tokenExampleText">github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+          <code id="tokenExampleText">ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
           <button type="button" class="copy-btn" id="copyExampleTokenBtn" aria-label="Copy example token format">
             <i class="fa-solid fa-copy" aria-hidden="true"></i>
           </button>
         </div>
+        <div class="token-example-row" style="margin-top:6px;">
+          <i class="fa-solid fa-code" aria-hidden="true" style="color:var(--slate-400);"></i>
+          <code>github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+          <span style="font-size:12px;color:var(--slate-500);margin-left:2px;">(fine-grained alternative)</span>
+        </div>
 
         <p id="tokenHelper" class="token-permissions-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Repository access</b> set to <b>All repositories</b> (not "Only select repositories" - HoppingSite creates a brand-new repo for you, and a select-repos token can never write to a repo that didn't exist when it was created), and <b>Administration</b> + <b>Contents</b> set to Read &amp; Write. You can also add <b>Pages</b> (Read &amp; Write), but GitHub's API doesn't reliably support enabling Pages with this token type, so HoppingSite will fall back to a one-click manual step if that happens. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
+          <span>Easiest option: a <b>classic Personal Access Token</b> with the <b>repo</b> scope checked - it has no per-repo allow-list, so create-repo → upload index.html → enable Pages all run automatically with no extra steps on GitHub's side. If you'd rather use a <b>Fine-grained Personal Access Token</b>, set <b>Repository access</b> to <b>All repositories</b> (not "Only select repositories" - HoppingSite creates a brand-new repo for you, and a select-repos token can never write to a repo that didn't exist when it was created) and set <b>Administration</b> + <b>Contents</b> to Read &amp; Write. Either type can also get <b>Pages</b> (Read &amp; Write), but GitHub's API doesn't reliably support enabling Pages with fine-grained tokens, so HoppingSite will fall back to a one-click manual step if that happens. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
         </p>
       </section>
 
@@ -1286,7 +1291,14 @@ const sessionOwnedRepos = new Set();
    ============================================================ */
 const TokenStore = (function(){
   const KEY = "hoppingsite_github_token";
-  const PREFIX = "github_pat_";
+  const PREFIX = "github_pat_"; // fine-grained PAT prefix, kept for the copy-example UI
+  // Classic PATs (ghp_, and the less common gho_/ghu_/ghs_/ghr_ variants
+  // GitHub also issues) have no per-repo allow-list at all, so they never
+  // hit the "select repositories" wall a fine-grained PAT can - accepting
+  // them here is what lets create-repo -> write index.html -> enable
+  // Pages run as one uninterrupted automated flow with no detour to
+  // GitHub's settings mid-publish.
+  const CLASSIC_PREFIXES = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"];
 
   function get(){
     try{ return localStorage.getItem(KEY) || ""; }
@@ -1301,9 +1313,11 @@ const TokenStore = (function(){
     catch(e){ return false; }
   }
   function has(){ return get().length > 0; }
-  function isValidFormat(token){ return typeof token === "string" && token.startsWith(PREFIX) && token.length > PREFIX.length; }
+  function isClassic(token){ return typeof token === "string" && CLASSIC_PREFIXES.some(p => token.startsWith(p)); }
+  function isFineGrained(token){ return typeof token === "string" && token.startsWith(PREFIX) && token.length > PREFIX.length; }
+  function isValidFormat(token){ return isFineGrained(token) || (isClassic(token) && token.length > 8); }
 
-  return { get, set, clear, has, isValidFormat, PREFIX };
+  return { get, set, clear, has, isValidFormat, isClassic, isFineGrained, PREFIX };
 })();
 
 /* ============================================================
@@ -1725,9 +1739,19 @@ const GitHubClient = (function(){
         await new Promise(r => setTimeout(r, 1500));
         committed = await upsertIndexHtml(owner, name, htmlContent);
         if(!committed.ok && committed.forbidden){
+          // There is no API call that works around this - a "select
+          // repositories" fine-grained PAT's list can only be edited by
+          // a human on GitHub's own settings page, never via the API,
+          // even for a repo this exact token just created. So instead of
+          // a dead-end error, return enough structured info
+          // (owner/name/htmlContent) for the UI to offer a one-click
+          // "I've added it, retry upload" button that re-runs just
+          // upsertIndexHtml() - no need to recreate the repo or make the
+          // person start the whole publish over.
           return {
-            ok:false, reason:"forbidden",
-            message: `GitHub created "${name}" fine, but then refused to write index.html into it. This happens when a Fine-grained Personal Access Token is scoped to "Only select repositories" - GitHub doesn't add a repo you just created to that list automatically. Open the token's settings on GitHub, change repository access to "All repositories" (or generate a classic PAT with the "repo" scope instead), then try publishing again.`
+            ok:false, reason:"repo_access_gap",
+            owner, name, htmlContent,
+            message: `GitHub created "${name}" fine, but then refused to write index.html into it. This happens when a Fine-grained Personal Access Token is scoped to "Only select repositories" - GitHub doesn't add a repo you just created to that list automatically.`
           };
         }
       }
@@ -1738,82 +1762,124 @@ const GitHubClient = (function(){
         return { ok:false, reason:"error", message: committed.body?.message || "Could not upload index.html." };
       }
 
-      // The repository exists and index.html is committed to its default
-      // branch - the two operations that fine-grained PATs fully support.
-      // Everything from here on is "make Pages serve it", which is the
-      // one part of this workflow where fine-grained PATs are unreliable
-      // (see enablePages() above). None of it is allowed to undo the
-      // successful repo + file publish above by reporting a hard failure.
-      onStage("pages");
-      const pages = await enablePages(owner, name);
-
-      // A network/rate-limit/auth problem *during* the Pages attempt is
-      // still a real problem worth surfacing distinctly, but the repo and
-      // file are already live in GitHub regardless.
-      const pagesTransportFailure = pages.transportFailure ? classifyFailure(pages.transportFailure) : null;
-
-      onStage("verify");
-      onStage("deploy");
-
-      let build = { ok:true, status:"built" };
-      if(pages.succeeded || pages.alreadyEnabled){
-        build = await waitForPagesBuild(owner, name);
-      }
-
-      onStage("final");
-      sessionOwnedRepos.add(name);
-
-      // Always confirm against the read-only Pages endpoint - it works
-      // regardless of how enablePages() went, and is the source of truth
-      // for whether the site is actually live yet.
-      const pagesInfo = await getPagesStatus(owner, name);
-      const isLive = pagesInfo.ok && pagesInfo.body && pagesInfo.body.status !== "errored";
-      const liveUrl = isLive && pagesInfo.body.html_url
-        ? pagesInfo.body.html_url
-        : `https://${owner}.github.io/${name}`;
-
-      if(isLive){
-        return { ok:true, repo:name, owner, url: liveUrl };
-      }
-
-      // Pages isn't confirmed live. Distinguish *why* so the UI can give
-      // an accurate explanation instead of a generic error - in every one
-      // of these branches the repo and index.html are already published.
-      if(pages.permissionGap){
-        return {
-          ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
-          pagesReason:"fine_grained_unsupported",
-          pagesMessage:"Your repository and index.html were published successfully. GitHub's API doesn't allow Fine-grained Personal Access Tokens to turn on Pages automatically (this is a known GitHub limitation, not a HoppingSite error) - turn it on once in your repo's Settings → Pages, choosing the \"main\" branch as the source."
-        };
-      }
-      if(pagesTransportFailure){
-        return {
-          ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
-          pagesReason: pagesTransportFailure.reason,
-          pagesMessage: `Your repository and index.html were published successfully, but enabling Pages hit an issue: ${pagesTransportFailure.message} You can also turn it on manually in Settings → Pages.`
-        };
-      }
-      if(build.status === "errored"){
-        return {
-          ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
-          pagesReason:"build_errored",
-          pagesMessage:"Your repository and index.html were published successfully, but the GitHub Pages build reported an error. Check your repo's Settings → Pages for details."
-        };
-      }
-      // Timeout waiting for "built", or Pages status just isn't visible
-      // yet - GitHub Pages often finishes shortly after we stop polling,
-      // so this isn't treated as a failure, just not-yet-confirmed.
-      return {
-        ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
-        pagesReason:"pending",
-        pagesMessage:"Your repository and index.html were published successfully. GitHub Pages is still finishing its first build - your site should be live within a minute or two. If it isn't, check Settings → Pages."
-      };
+      return await finishAfterCommit(owner, name, onStage);
     }catch(err){
       return { ok:false, reason:"error", message: err && err.message ? err.message : "Something went wrong while publishing." };
     }
   }
 
-  return { getRepo, getOwner, publishSite };
+  /**
+   * Everything that happens once index.html is confirmed committed:
+   * best-effort Pages enablement, waiting for the build, and shaping the
+   * final result. Split out of publishSite() so retryUploadAndFinish()
+   * (used after a repo_access_gap recovery - see publishSite's upload
+   * step above) can reach the exact same completion path without
+   * duplicating it or re-running repo creation.
+   */
+  async function finishAfterCommit(owner, name, onStage){
+    // The repository exists and index.html is committed to its default
+    // branch - the two operations that fine-grained PATs fully support.
+    // Everything from here on is "make Pages serve it", which is the
+    // one part of this workflow where fine-grained PATs are unreliable
+    // (see enablePages() above). None of it is allowed to undo the
+    // successful repo + file publish above by reporting a hard failure.
+    onStage("pages");
+    const pages = await enablePages(owner, name);
+
+    // A network/rate-limit/auth problem *during* the Pages attempt is
+    // still a real problem worth surfacing distinctly, but the repo and
+    // file are already live in GitHub regardless.
+    const pagesTransportFailure = pages.transportFailure ? classifyFailure(pages.transportFailure) : null;
+
+    onStage("verify");
+    onStage("deploy");
+
+    let build = { ok:true, status:"built" };
+    if(pages.succeeded || pages.alreadyEnabled){
+      build = await waitForPagesBuild(owner, name);
+    }
+
+    onStage("final");
+    sessionOwnedRepos.add(name);
+
+    // Always confirm against the read-only Pages endpoint - it works
+    // regardless of how enablePages() went, and is the source of truth
+    // for whether the site is actually live yet.
+    const pagesInfo = await getPagesStatus(owner, name);
+    const isLive = pagesInfo.ok && pagesInfo.body && pagesInfo.body.status !== "errored";
+    const liveUrl = isLive && pagesInfo.body.html_url
+      ? pagesInfo.body.html_url
+      : `https://${owner}.github.io/${name}`;
+
+    if(isLive){
+      return { ok:true, repo:name, owner, url: liveUrl };
+    }
+
+    // Pages isn't confirmed live. Distinguish *why* so the UI can give
+    // an accurate explanation instead of a generic error - in every one
+    // of these branches the repo and index.html are already published.
+    if(pages.permissionGap){
+      return {
+        ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
+        pagesReason:"fine_grained_unsupported",
+        pagesMessage:"Your repository and index.html were published successfully. GitHub's API doesn't allow Fine-grained Personal Access Tokens to turn on Pages automatically (this is a known GitHub limitation, not a HoppingSite error) - turn it on once in your repo's Settings → Pages, choosing the \"main\" branch as the source."
+      };
+    }
+    if(pagesTransportFailure){
+      return {
+        ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
+        pagesReason: pagesTransportFailure.reason,
+        pagesMessage: `Your repository and index.html were published successfully, but enabling Pages hit an issue: ${pagesTransportFailure.message} You can also turn it on manually in Settings → Pages.`
+      };
+    }
+    if(build.status === "errored"){
+      return {
+        ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
+        pagesReason:"build_errored",
+        pagesMessage:"Your repository and index.html were published successfully, but the GitHub Pages build reported an error. Check your repo's Settings → Pages for details."
+      };
+    }
+    // Timeout waiting for "built", or Pages status just isn't visible
+    // yet - GitHub Pages often finishes shortly after we stop polling,
+    // so this isn't treated as a failure, just not-yet-confirmed.
+    return {
+      ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
+      pagesReason:"pending",
+      pagesMessage:"Your repository and index.html were published successfully. GitHub Pages is still finishing its first build - your site should be live within a minute or two. If it isn't, check Settings → Pages."
+    };
+  }
+
+  /**
+   * Resumable recovery for reason:"repo_access_gap". Called after the
+   * user has edited their token's repository access on GitHub (adding
+   * the just-created repo, or switching to "All repositories") and
+   * clicked "Retry upload" - re-attempts only the contents PUT, then
+   * continues into the exact same Pages/build/result path a normal
+   * publish would take. Never re-runs repo creation: the repo from the
+   * failed attempt still exists and is exactly what we want to write into.
+   */
+  async function retryUploadAndFinish({ owner, name, htmlContent }, onStage){
+    try{
+      onStage("upload");
+      const committed = await upsertIndexHtml(owner, name, htmlContent);
+      if(!committed.ok){
+        const failure = classifyFailure(committed);
+        if(failure) return failure;
+        if(committed.forbidden){
+          return {
+            ok:false, reason:"repo_access_gap", owner, name, htmlContent,
+            message: `GitHub still refuses to write to "${name}". Double check that repository was actually added to the token's list (or that repository access is set to "All repositories"), then try again.`
+          };
+        }
+        return { ok:false, reason:"error", message: committed.body?.message || "Could not upload index.html." };
+      }
+      return await finishAfterCommit(owner, name, onStage);
+    }catch(err){
+      return { ok:false, reason:"error", message: err && err.message ? err.message : "Something went wrong while publishing." };
+    }
+  }
+
+  return { getRepo, getOwner, publishSite, retryUploadAndFinish };
 })();
 
 /* ============================================================
@@ -2067,7 +2133,7 @@ saveTokenBtn.addEventListener("click", ()=>{
   if(!TokenStore.isValidFormat(value)){
     tokenRow.classList.add("is-invalid");
     tokenRow.classList.remove("is-valid");
-    setTokenMessage(`A Fine-grained PAT starts with "${TokenStore.PREFIX}". Double-check what you pasted.`, "error");
+    setTokenMessage(`That doesn't look like a GitHub token. A classic PAT starts with "ghp_"; a fine-grained PAT starts with "${TokenStore.PREFIX}". Double-check what you pasted.`, "error");
     return;
   }
 
@@ -2539,6 +2605,73 @@ function unlockControls(){
   updatePublishState();
 }
 
+/**
+ * reason:"repo_access_gap" recovery UI. GitHub gives no API way to add a
+ * repo to a "select repositories" fine-grained token's list - only the
+ * settings page can do that - so this points the user straight at that
+ * page and offers a one-click retry that resumes from the upload step
+ * (via GitHubClient.retryUploadAndFinish), rather than making them
+ * restart the whole publish or hunt for the settings URL themselves.
+ */
+function showRepoAccessGap(result){
+  const msg = result.message || "GitHub refused to write index.html into the repository it just created.";
+  setDomainMessage(msg, "error");
+  showSnackbar(msg, "err", 9000);
+
+  const bar = el("div", "field-msg error repo-access-gap");
+  bar.innerHTML = `
+    <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+    <span>
+      Open <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> your token's settings on GitHub</a>,
+      edit it, set repository access to <b>All repositories</b> (or add "<b>${result.name}</b>" to the selected list), save, then retry below - no need to publish again from scratch.
+      <button type="button" class="btn btn-secondary btn-sm" id="retryUploadBtn" style="margin-top:10px;">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Retry upload
+      </button>
+    </span>`;
+  domainMsgWrap.innerHTML = "";
+  domainMsgWrap.appendChild(bar);
+
+  const retryBtn = bar.querySelector("#retryUploadBtn");
+  retryBtn.addEventListener("click", async () => {
+    retryBtn.disabled = true;
+    retryBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Retrying...`;
+    publishBtn.disabled = true;
+    Array.from(deployForm.elements).forEach(elm => elm.disabled = true);
+    deployOverlay.classList.add("show");
+    resetDeployPanel();
+
+    const retryResult = await GitHubClient.retryUploadAndFinish(
+      { owner: result.owner, name: result.name, htmlContent: result.htmlContent },
+      onDeployStage
+    );
+
+    clearInterval(creepTimer);
+
+    if(!retryResult.ok){
+      deployOverlay.classList.remove("show");
+      unlockControls();
+      retryBtn.disabled = false;
+      retryBtn.innerHTML = `<i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Retry upload`;
+      if(retryResult.reason === "repo_access_gap"){
+        showRepoAccessGap(retryResult);
+      } else {
+        const failMsg = retryResult.message || "Still couldn't publish. Please try again.";
+        showSnackbar(failMsg, "err", 8000);
+        setDomainMessage(failMsg, "error");
+      }
+      return;
+    }
+
+    setProgress(100);
+    deployStatus.textContent = "Deployment complete!";
+    const lastCur = deployLog.querySelector(".cur");
+    if(lastCur){ lastCur.classList.remove("cur"); lastCur.classList.add("ok"); lastCur.innerHTML = `<i class="fa-solid fa-check" style="margin-right:5px;"></i>${lastCur.dataset.label}`; }
+
+    state.publishedRepoName = result.name;
+    setTimeout(()=> showSuccess(retryResult), 500);
+  });
+}
+
 async function runDeployment(){
   resetDeployPanel();
   deployStartTime = performance.now();
@@ -2581,6 +2714,8 @@ async function runDeployment(){
       const msg = result.message || "This GitHub token doesn't have permission to do that.";
       showSnackbar(msg, "err", 8000);
       setDomainMessage(msg, "error");
+    } else if(result.reason === "repo_access_gap"){
+      showRepoAccessGap(result);
     } else if(result.reason === "rate_limited"){
       const msg = result.message || "GitHub rate limit reached. Try again shortly.";
       showSnackbar(msg, "err", 8000);
