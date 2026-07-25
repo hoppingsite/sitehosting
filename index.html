@@ -1416,14 +1416,18 @@ const GitHubClient = (function(){
     });
   }
 
-  /** PATCH /repos/{owner}/{repo} - make sure the default branch is main. */
-  async function ensureMainDefaultBranch(name){
-    return request(`/repos/${cfg.owner}/${name}`, {
-      method:"PATCH",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ default_branch:"main" })
-    });
-  }
+  /**
+   * NOTE: There used to be a PATCH /repos/{owner}/{repo} call here to
+   * force the default branch to "main" before every upload. It has been
+   * removed - it was the actual cause of "Resource not accessible by
+   * personal access token" showing up right before the upload step.
+   * PATCH /repos/{owner}/{repo} is a broad repository-settings write
+   * (Administration) and fine-grained PATs frequently can't use it even
+   * with Administration: write granted. It was also redundant:
+   * createRepo() already passes auto_init:true + default_branch:"main",
+   * so "main" exists as the default branch from the moment the repo is
+   * created - there is nothing left to fix by the time upload runs.
+   */
 
   /** GET current index.html sha, if it exists (needed to update vs. create). */
   async function getExistingFileSha(name){
@@ -1622,9 +1626,6 @@ const GitHubClient = (function(){
         // Freshly created repos need a beat before contents/branches settle.
         await new Promise(r => setTimeout(r, 800));
       }
-      const branchRes = await ensureMainDefaultBranch(name);
-      const branchFailure = classifyFailure(branchRes);
-      if(branchFailure) return branchFailure;
 
       onStage("upload");
       const committed = await upsertIndexHtml(name, htmlContent);
