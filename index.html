@@ -850,9 +850,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       </span>
     </a>
     <nav class="header-nav" id="headerNav" aria-label="Primary">
-      <a href="#upload-card">Publish</a>
-      <a href="#how">How it works</a>
-      <a href="#faq">FAQ</a>
+      <a href="#upload-card"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> Publish</a>
+      <a href="#how"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> How it works</a>
+      <a href="#faq"><i class="fa-solid fa-circle-question" aria-hidden="true"></i> FAQ</a>
       <a href="https://docs.github.com/pages" target="_blank" rel="noopener">
         <i class="fa-solid fa-book" aria-hidden="true"></i> Documentation
       </a>
@@ -922,7 +922,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <p id="tokenHelper" class="token-permissions-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Administration</b> and <b>Contents</b> set to Read &amp; Write - that's all publishing needs. You can also add <b>Pages</b> (Read &amp; Write), but GitHub's API doesn't reliably support enabling Pages with this token type, so HoppingSite will fall back to a one-click manual step if that happens. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
+          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Repository access</b> set to <b>All repositories</b> (not "Only select repositories" - HoppingSite creates a brand-new repo for you, and a select-repos token can never write to a repo that didn't exist when it was created), and <b>Administration</b> + <b>Contents</b> set to Read &amp; Write. You can also add <b>Pages</b> (Read &amp; Write), but GitHub's API doesn't reliably support enabling Pages with this token type, so HoppingSite will fall back to a one-click manual step if that happens. Your token is saved with <code>localStorage</code> in this browser only - it's never written into this page's source, committed to Git, or sent anywhere except directly to GitHub's API.</span>
         </p>
       </section>
 
@@ -1242,9 +1242,16 @@ const HoppingSiteConfig = {
      file, JavaScript source, Git history, or any downloadable output.
      GitHubClient reads the token fresh from TokenStore on every
      request instead of from a hardcoded constant.
+
+     There's also no hardcoded "owner" here anymore. GitHubClient asks
+     GitHub who the token actually belongs to (GET /user) and publishes
+     every repo under that account - see GitHubClient.getOwner(). A
+     fixed owner constant would break for anyone whose token isn't that
+     exact account, since fine-grained PATs can only write to repos
+     their own account (or an org that explicitly approved them) can
+     access.
      ================================================================ */
   github:{
-    owner: "hoppingsite",
     apiBase: "https://api.github.com",
     pagesPollIntervalMs: 3000,
     pagesPollTimeoutMs: 120000
@@ -1311,6 +1318,47 @@ const TokenStore = (function(){
    ============================================================ */
 const GitHubClient = (function(){
   const cfg = HoppingSiteConfig.github;
+
+  // ------------------------------------------------------------
+  // Resolved owner (the actual authenticated GitHub login)
+  // ------------------------------------------------------------
+  // This used to be a hardcoded "hoppingsite" constant. That was the
+  // real cause of "Resource not accessible by personal access token"
+  // showing up at the upload step: a fine-grained PAT is scoped to the
+  // account that created it (or an org that explicitly approved it) -
+  // it cannot write into some other account's repo. Every visitor's
+  // token creates its repo under *their own* account via POST /user/repos
+  // (no "org" field is sent), but every subsequent call was still
+  // targeting hoppingsite/<name> - a repo that visitor's token has no
+  // rights to. GET /user/pages, /contents, etc. is then refused with
+  // exactly the 403 seen here.
+  //
+  // Fix: ask GitHub who the token actually belongs to (GET /user, which
+  // only needs read access to the authenticated user and works for
+  // every PAT), cache the login for the lifetime of this token, and use
+  // that as the owner for every repo call instead of a fixed string.
+  let resolvedOwner = null;
+  let resolvedOwnerForToken = null; // detects a token swap mid-session
+
+  async function getOwner(){
+    const currentToken = TokenStore.get();
+    if(resolvedOwner && resolvedOwnerForToken === currentToken){
+      return { ok:true, login: resolvedOwner };
+    }
+    const res = await request(`/user`, { method:"GET" });
+    if(!res.ok){
+      return res; // caller propagates auth/rate-limit/network/etc as-is
+    }
+    resolvedOwner = res.body && res.body.login;
+    resolvedOwnerForToken = currentToken;
+    if(!resolvedOwner){
+      return {
+        ok:false, status:res.status, body:res.body,
+        message:"Couldn't determine the GitHub account for this token."
+      };
+    }
+    return { ok:true, login: resolvedOwner };
+  }
 
   function authHeaders(){
     return {
@@ -1397,8 +1445,8 @@ const GitHubClient = (function(){
   }
 
   /** GET /repos/{owner}/{repo} - does this repo already exist? */
-  async function getRepo(name){
-    return request(`/repos/${cfg.owner}/${name}`, { method:"GET" });
+  async function getRepo(owner, name){
+    return request(`/repos/${owner}/${name}`, { method:"GET" });
   }
 
   /** POST /user/repos - create a new repository, initialized so `main` exists immediately. */
@@ -1430,8 +1478,8 @@ const GitHubClient = (function(){
    */
 
   /** GET current index.html sha, if it exists (needed to update vs. create). */
-  async function getExistingFileSha(name){
-    const res = await request(`/repos/${cfg.owner}/${name}/contents/index.html`, { method:"GET" });
+  async function getExistingFileSha(owner, name){
+    const res = await request(`/repos/${owner}/${name}/contents/index.html`, { method:"GET" });
     return res.ok && res.body && res.body.sha ? res.body.sha : null;
   }
 
@@ -1449,9 +1497,9 @@ const GitHubClient = (function(){
    * URL) on every subsequent publish to the same name - this is what
    * makes re-uploading replace the previous index.html in place.
    */
-  async function upsertIndexHtml(name, htmlContent){
-    const existingSha = await getExistingFileSha(name);
-    return request(`/repos/${cfg.owner}/${name}/contents/index.html`, {
+  async function upsertIndexHtml(owner, name, htmlContent){
+    const existingSha = await getExistingFileSha(owner, name);
+    return request(`/repos/${owner}/${name}/contents/index.html`, {
       method:"PUT",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({
@@ -1471,8 +1519,8 @@ const GitHubClient = (function(){
    * site is already live, and to verify the outcome afterward regardless
    * of whether the enable call itself succeeded.
    */
-  async function getPagesStatus(name){
-    return request(`/repos/${cfg.owner}/${name}/pages`, { method:"GET" });
+  async function getPagesStatus(owner, name){
+    return request(`/repos/${owner}/${name}/pages`, { method:"GET" });
   }
 
   /**
@@ -1494,14 +1542,14 @@ const GitHubClient = (function(){
    * a clean success as "repo + file are still published; Pages just
    * needs a one-time manual toggle" rather than aborting the deploy.
    */
-  async function enablePages(name){
+  async function enablePages(owner, name){
     // If Pages is already configured (e.g. a previous publish, or the
     // user enabled it by hand), there's nothing to do - and no need to
     // risk the unsupported call at all. A genuine transport problem on
     // this read-only check (auth/rate-limit/network) is passed through
     // so the caller can still tell the user something concrete; a plain
     // 404 ("no Pages site yet") is expected and means "keep going".
-    const existingStatus = await getPagesStatus(name);
+    const existingStatus = await getPagesStatus(owner, name);
     if(existingStatus.ok){
       return { attempted:false, alreadyEnabled:true };
     }
@@ -1513,7 +1561,7 @@ const GitHubClient = (function(){
       build_type:"legacy",
       source:{ branch:"main", path:"/" }
     };
-    let res = await request(`/repos/${cfg.owner}/${name}/pages`, {
+    let res = await request(`/repos/${owner}/${name}/pages`, {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(payload)
@@ -1521,7 +1569,7 @@ const GitHubClient = (function(){
 
     if(res.status === 409){
       // Pages already enabled - update its source instead.
-      res = await request(`/repos/${cfg.owner}/${name}/pages`, {
+      res = await request(`/repos/${owner}/${name}/pages`, {
         method:"PUT",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify(payload)
@@ -1552,10 +1600,10 @@ const GitHubClient = (function(){
   }
 
   /** Poll GET /repos/{owner}/{repo}/pages until the build reports "built". */
-  async function waitForPagesBuild(name, onTick){
+  async function waitForPagesBuild(owner, name, onTick){
     const start = Date.now();
     while(Date.now() - start < cfg.pagesPollTimeoutMs){
-      const res = await request(`/repos/${cfg.owner}/${name}/pages`, { method:"GET" });
+      const res = await request(`/repos/${owner}/${name}/pages`, { method:"GET" });
       const status = res.body && res.body.status; // "building" | "built" | "errored" | null
       if(onTick) onTick(status);
       if(status === "built") return { ok:true, status };
@@ -1596,7 +1644,23 @@ const GitHubClient = (function(){
     try{
       onStage("init");
 
-      const existing = await getRepo(name);
+      // Resolve who this token actually belongs to before touching any
+      // repo - every call below targets *this* account, never a fixed
+      // constant. This is what fixes "Resource not accessible by
+      // personal access token" at upload: previously every request went
+      // to a hardcoded "hoppingsite" owner regardless of whose token was
+      // pasted in, so any visitor whose repo landed under their own
+      // account (the normal outcome of POST /user/repos) had every
+      // following call refused as accessing someone else's repo.
+      const ownerRes = await getOwner();
+      const ownerFailure = classifyFailure(ownerRes);
+      if(ownerFailure) return ownerFailure;
+      if(!ownerRes.ok){
+        return { ok:false, reason:"error", message: ownerRes.message || "Could not verify this GitHub token's account." };
+      }
+      const owner = ownerRes.login;
+
+      const existing = await getRepo(owner, name);
       const existingFailure = classifyFailure(existing);
       if(existingFailure) return existingFailure;
       if(existing.ok && !isUpdateToOwnSite){
@@ -1611,6 +1675,7 @@ const GitHubClient = (function(){
         // 422 and get misreported as name_taken.
         return { ok:false, reason:"error", message: existing.body?.message || "Could not check GitHub for that repository." };
       }
+      let justCreated = false;
       if(!existing.ok){
         const created = await createRepo(name);
         const createdFailure = classifyFailure(created);
@@ -1623,12 +1688,50 @@ const GitHubClient = (function(){
           }
           return { ok:false, reason:"error", message: created.body?.message || "Could not create the repository." };
         }
+        justCreated = true;
         // Freshly created repos need a beat before contents/branches settle.
         await new Promise(r => setTimeout(r, 800));
       }
 
       onStage("upload");
-      const committed = await upsertIndexHtml(name, htmlContent);
+      let committed = await upsertIndexHtml(owner, name, htmlContent);
+
+      // ----------------------------------------------------------------
+      // The one remaining real-world cause of "Resource not accessible by
+      // personal access token" AT THIS EXACT STEP: a fine-grained PAT
+      // scoped to "Only select repositories" instead of "All repositories".
+      // POST /user/repos (repo creation) is allowed for any fine-grained
+      // PAT regardless of its repo list, because the repo doesn't exist
+      // yet at the time the token was scoped. But GitHub never
+      // retroactively adds a brand-new repo to that pre-selected list -
+      // so the very next call against that same repo (this PUT) is
+      // refused, even though Contents is set to Read & Write and every
+      // other permission is correct. It looks identical to a genuine
+      // missing-scope 403, but it only happens on a repo *we just
+      // created in this same run*, and one short retry after a beat
+      // never fixes it (GitHub's repo list isn't eventually-consistent
+      // here - it's a hard access-list check).
+      //
+      // Rather than reporting the generic "check your scopes" message
+      // (which sends people back to a permissions screen that already
+      // looks correct), detect this exact create-then-403 shape and
+      // explain the real fix: re-generate or edit the token with
+      // "All repositories" access (or use a classic PAT with the "repo"
+      // scope, which has no per-repo allow-list at all).
+      // ----------------------------------------------------------------
+      if(!committed.ok && committed.forbidden && justCreated){
+        // One retry after a longer beat rules out ordinary propagation
+        // delay before we commit to the repo-list diagnosis.
+        await new Promise(r => setTimeout(r, 1500));
+        committed = await upsertIndexHtml(owner, name, htmlContent);
+        if(!committed.ok && committed.forbidden){
+          return {
+            ok:false, reason:"forbidden",
+            message: `GitHub created "${name}" fine, but then refused to write index.html into it. This happens when a Fine-grained Personal Access Token is scoped to "Only select repositories" - GitHub doesn't add a repo you just created to that list automatically. Open the token's settings on GitHub, change repository access to "All repositories" (or generate a classic PAT with the "repo" scope instead), then try publishing again.`
+          };
+        }
+      }
+
       const committedFailure = classifyFailure(committed);
       if(committedFailure) return committedFailure;
       if(!committed.ok){
@@ -1642,7 +1745,7 @@ const GitHubClient = (function(){
       // (see enablePages() above). None of it is allowed to undo the
       // successful repo + file publish above by reporting a hard failure.
       onStage("pages");
-      const pages = await enablePages(name);
+      const pages = await enablePages(owner, name);
 
       // A network/rate-limit/auth problem *during* the Pages attempt is
       // still a real problem worth surfacing distinctly, but the repo and
@@ -1654,7 +1757,7 @@ const GitHubClient = (function(){
 
       let build = { ok:true, status:"built" };
       if(pages.succeeded || pages.alreadyEnabled){
-        build = await waitForPagesBuild(name);
+        build = await waitForPagesBuild(owner, name);
       }
 
       onStage("final");
@@ -1663,14 +1766,14 @@ const GitHubClient = (function(){
       // Always confirm against the read-only Pages endpoint - it works
       // regardless of how enablePages() went, and is the source of truth
       // for whether the site is actually live yet.
-      const pagesInfo = await getPagesStatus(name);
+      const pagesInfo = await getPagesStatus(owner, name);
       const isLive = pagesInfo.ok && pagesInfo.body && pagesInfo.body.status !== "errored";
       const liveUrl = isLive && pagesInfo.body.html_url
         ? pagesInfo.body.html_url
-        : `https://${HoppingSiteConfig.brand.domainRoot}/${name}`;
+        : `https://${owner}.github.io/${name}`;
 
       if(isLive){
-        return { ok:true, repo:name, url: liveUrl };
+        return { ok:true, repo:name, owner, url: liveUrl };
       }
 
       // Pages isn't confirmed live. Distinguish *why* so the UI can give
@@ -1678,21 +1781,21 @@ const GitHubClient = (function(){
       // of these branches the repo and index.html are already published.
       if(pages.permissionGap){
         return {
-          ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+          ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
           pagesReason:"fine_grained_unsupported",
           pagesMessage:"Your repository and index.html were published successfully. GitHub's API doesn't allow Fine-grained Personal Access Tokens to turn on Pages automatically (this is a known GitHub limitation, not a HoppingSite error) - turn it on once in your repo's Settings → Pages, choosing the \"main\" branch as the source."
         };
       }
       if(pagesTransportFailure){
         return {
-          ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+          ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
           pagesReason: pagesTransportFailure.reason,
           pagesMessage: `Your repository and index.html were published successfully, but enabling Pages hit an issue: ${pagesTransportFailure.message} You can also turn it on manually in Settings → Pages.`
         };
       }
       if(build.status === "errored"){
         return {
-          ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+          ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
           pagesReason:"build_errored",
           pagesMessage:"Your repository and index.html were published successfully, but the GitHub Pages build reported an error. Check your repo's Settings → Pages for details."
         };
@@ -1701,7 +1804,7 @@ const GitHubClient = (function(){
       // yet - GitHub Pages often finishes shortly after we stop polling,
       // so this isn't treated as a failure, just not-yet-confirmed.
       return {
-        ok:true, repo:name, url: liveUrl, pagesManualStepNeeded:true,
+        ok:true, repo:name, owner, url: liveUrl, pagesManualStepNeeded:true,
         pagesReason:"pending",
         pagesMessage:"Your repository and index.html were published successfully. GitHub Pages is still finishing its first build - your site should be live within a minute or two. If it isn't, check Settings → Pages."
       };
@@ -1710,7 +1813,7 @@ const GitHubClient = (function(){
     }
   }
 
-  return { getRepo, publishSite };
+  return { getRepo, getOwner, publishSite };
 })();
 
 /* ============================================================
@@ -2100,8 +2203,9 @@ const checkAvailability = debounce(async function(name){
   }
 
   // Real check against GitHub: does a repo with this name already exist
-  // under the configured owner? A name this session already published to
-  // is always treated as available (re-publishing overwrites in place).
+  // under this token's own account? A name this session already
+  // published to is always treated as available (re-publishing
+  // overwrites in place).
   //
   // NOTE: In production, swap this for a call to your backend instead:
   //   fetch(HoppingSiteConfig.api.baseUrl + HoppingSiteConfig.api.endpoints.checkAvailability, {
@@ -2116,7 +2220,21 @@ const checkAvailability = debounce(async function(name){
   if(sessionOwnedRepos.has(name)){
     taken = false;
   } else {
-    const res = await GitHubClient.getRepo(name);
+    const ownerRes = await GitHubClient.getOwner();
+    if(ownerRes.authError){
+      authFailed = true;
+      failureMessage = ownerRes.message;
+    } else if(ownerRes.rateLimited){
+      rateLimited = true;
+      failureMessage = ownerRes.message;
+    } else if(ownerRes.networkError){
+      networkFailed = true;
+      failureMessage = ownerRes.message;
+    } else if(!ownerRes.ok){
+      networkFailed = true;
+      failureMessage = ownerRes.message || "Couldn't verify your GitHub account. You can still try publishing.";
+    } else {
+    const res = await GitHubClient.getRepo(ownerRes.login, name);
     if(res.authError){
       authFailed = true;
       failureMessage = res.message;
@@ -2136,6 +2254,7 @@ const checkAvailability = debounce(async function(name){
       failureMessage = "Couldn't reach GitHub to check that name. You can still try publishing.";
     } else {
       taken = res.ok; // 200 = repo exists = name taken; 404 = free
+    }
     }
   }
 
@@ -2504,7 +2623,7 @@ function showSuccess(result){
 
   const manualNote = $("#pagesManualStepNote");
   if(result.pagesManualStepNeeded){
-    $("#pagesManualStepText").innerHTML = `${result.pagesMessage} <a href="https://github.com/${HoppingSiteConfig.github.owner}/${result.repo}/settings/pages" target="_blank" rel="noopener"><b>Open Pages settings</b></a>.`;
+    $("#pagesManualStepText").innerHTML = `${result.pagesMessage} <a href="https://github.com/${result.owner}/${result.repo}/settings/pages" target="_blank" rel="noopener"><b>Open Pages settings</b></a>.`;
     manualNote.classList.remove("hidden");
     showSnackbar("Repo and file published - one manual step left for Pages.", "ok", 6000);
   } else {
