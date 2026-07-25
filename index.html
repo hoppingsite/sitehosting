@@ -997,19 +997,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
   <!-- ============ FAQ ============ -->
   <section id="faq" class="container" style="padding:56px 0 20px;max-width:680px;">
-    <h2 style="font-family:var(--font-display);font-size:22px;text-align:center;margin:0 0 22px;">Frequently asked</h2>
+    <h2 style="font-family:var(--font-display);font-size:22px;text-align:center;margin:0 0 22px;display:flex;align-items:center;justify-content:center;gap:10px;"><i class="fa-solid fa-circle-question" style="color:var(--primary);font-size:19px;" aria-hidden="true"></i>Frequently asked</h2>
     <div class="card" style="padding:8px 20px;">
       <details style="padding:14px 0;border-bottom:1px solid var(--slate-100);">
-        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;">Is HoppingSite really free?</summary>
-        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0;">Yes. Publishing runs entirely on free GitHub Pages hosting, with no hidden fees.</p>
+        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:10px;"><i class="fa-solid fa-tag" style="color:var(--slate-400);width:16px;" aria-hidden="true"></i>Is HoppingSite really free?</summary>
+        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0 26px;">Yes. Publishing runs entirely on free GitHub Pages hosting, with no hidden fees.</p>
       </details>
       <details style="padding:14px 0;border-bottom:1px solid var(--slate-100);">
-        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;">Can I upload more than one file?</summary>
-        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0;">Right now HoppingSite accepts a single self-contained index.html file. Multi-file projects are on the roadmap.</p>
+        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:10px;"><i class="fa-solid fa-file" style="color:var(--slate-400);width:16px;" aria-hidden="true"></i>Can I upload more than one file?</summary>
+        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0 26px;">Not yet - HoppingSite accepts one self-contained index.html file per site.</p>
       </details>
       <details style="padding:14px 0;">
-        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;">What happens when a site expires?</summary>
-        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0;">The address is released and becomes available for someone else to claim. Choose "Never" to keep yours permanently.</p>
+        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:10px;"><i class="fa-solid fa-hourglass-half" style="color:var(--slate-400);width:16px;" aria-hidden="true"></i>What happens when a site expires?</summary>
+        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0 26px;">Its address is released for anyone to claim - choose "Never" to keep it permanently.</p>
       </details>
     </div>
   </section>
@@ -1150,8 +1150,10 @@ const HoppingSiteConfig = {
      ================================================================ */
   github:{
     // Publishing will fail with a "not connected to GitHub" message until
-    // this placeholder is replaced with a real token (demo/local use only -
-    // see the production warning above) or the app is wired to a backend.
+    // this placeholder is replaced with a real Fine-grained Personal
+    // Access Token (Administration: Read & Write, Contents: Read & Write,
+    // Pages: Read & Write) - demo/local use only, see the production
+    // warning above - or the app is wired to a backend.
     GITHUB_TOKEN: "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",
     owner: "hoppingsite",
     apiBase: "https://api.github.com",
@@ -1199,10 +1201,22 @@ const GitHubClient = (function(){
   }
 
   async function request(path, options={}){
-    const res = await fetch(`${cfg.apiBase}${path}`, {
-      ...options,
-      headers:{ ...authHeaders(), ...(options.headers||{}) }
-    });
+    let res;
+    try{
+      res = await fetch(`${cfg.apiBase}${path}`, {
+        ...options,
+        headers:{ ...authHeaders(), ...(options.headers||{}) }
+      });
+    }catch(networkErr){
+      // The request never reached GitHub at all (offline, DNS, CORS, etc).
+      // This is NOT an auth problem, so it must never be reported as one.
+      return {
+        ok:false, status:0, body:null,
+        networkError:true,
+        message:"Couldn't reach GitHub. Check your connection and try again."
+      };
+    }
+
     let body = null;
     try{ body = await res.json(); }catch(e){ /* some endpoints return no body */ }
 
@@ -1215,6 +1229,35 @@ const GitHubClient = (function(){
         ok:false, status:401, body,
         authError:true,
         message:"HoppingSite isn't connected to a working GitHub account yet. Add a valid GitHub token in the site configuration to enable publishing."
+      };
+    }
+
+    if(res.status === 403 || res.status === 429){
+      // GitHub overloads 403 for three distinct cases - tell them apart
+      // instead of collapsing everyone into the same generic error.
+      const remaining = res.headers.get("x-ratelimit-remaining");
+      const retryAfter = res.headers.get("retry-after");
+      const isPrimaryRateLimit = res.status === 429 || (remaining === "0");
+      const bodyMsg = (body && body.message) || "";
+      const isSecondaryRateLimit = /secondary rate limit/i.test(bodyMsg);
+
+      if(isPrimaryRateLimit || isSecondaryRateLimit){
+        const wait = retryAfter ? ` Try again in about ${retryAfter}s.` : " Try again in a few minutes.";
+        return {
+          ok:false, status:res.status, body,
+          rateLimited:true,
+          message:`GitHub rate limit reached.${wait}`
+        };
+      }
+
+      // Genuine 403 that isn't rate limiting: the token authenticated fine
+      // but lacks a required permission/scope for this action.
+      return {
+        ok:false, status:403, body,
+        forbidden:true,
+        message: bodyMsg
+          ? `GitHub denied this action: ${bodyMsg}`
+          : "This GitHub token doesn't have permission to do that. Check its Administration, Contents, and Pages scopes."
       };
     }
 
@@ -1252,7 +1295,7 @@ const GitHubClient = (function(){
 
   /** GET current index.html sha, if it exists (needed to update vs. create). */
   async function getExistingFileSha(name){
-    const res = await request(`/repos/${cfg.owner}/${name}/contents/${cfg.github?.finalFileName || "index.html"}`, { method:"GET" });
+    const res = await request(`/repos/${cfg.owner}/${name}/contents/index.html`, { method:"GET" });
     return res.ok && res.body && res.body.sha ? res.body.sha : null;
   }
 
@@ -1327,24 +1370,42 @@ const GitHubClient = (function(){
    * Returns: { ok:true, url, repo } on success
    *          { ok:false, reason:"name_taken" | "error", message }
    */
+  // Reads the special-case flags a request() result may carry (auth,
+  // forbidden/permission, rate-limited, network) and turns them into one
+  // of the reason codes the UI understands. Returns null if the result
+  // was a normal (non-special-case) failure, so the caller falls back to
+  // its own status-specific handling (e.g. 422 = name_taken, 404 = ok).
+  function classifyFailure(res){
+    if(res.authError)     return { ok:false, reason:"auth",        message: res.message };
+    if(res.forbidden)     return { ok:false, reason:"forbidden",   message: res.message };
+    if(res.rateLimited)   return { ok:false, reason:"rate_limited",message: res.message };
+    if(res.networkError)  return { ok:false, reason:"network",     message: res.message };
+    return null;
+  }
+
   async function publishSite({ name, htmlContent, isUpdateToOwnSite }, onStage){
     try{
       onStage("init");
 
       const existing = await getRepo(name);
-      if(existing.authError){
-        return { ok:false, reason:"auth", message: existing.message };
-      }
+      const existingFailure = classifyFailure(existing);
+      if(existingFailure) return existingFailure;
       if(existing.ok && !isUpdateToOwnSite){
         // Repo already exists and this session didn't create it - treat
         // the custom name as taken, same as the domain-availability check.
         return { ok:false, reason:"name_taken" };
       }
+      if(!existing.ok && existing.status !== 404){
+        // Anything other than "repo not found" here (5xx, malformed
+        // response, etc) means we can't trust the existence check at all -
+        // do not fall through to createRepo, which would then legitimately
+        // 422 and get misreported as name_taken.
+        return { ok:false, reason:"error", message: existing.body?.message || "Could not check GitHub for that repository." };
+      }
       if(!existing.ok){
         const created = await createRepo(name);
-        if(created.authError){
-          return { ok:false, reason:"auth", message: created.message };
-        }
+        const createdFailure = classifyFailure(created);
+        if(createdFailure) return createdFailure;
         if(!created.ok){
           if(created.status === 422){
             // GitHub itself reports the name collides with something
@@ -1356,39 +1417,51 @@ const GitHubClient = (function(){
         // Freshly created repos need a beat before contents/branches settle.
         await new Promise(r => setTimeout(r, 800));
       }
-      await ensureMainDefaultBranch(name);
+      const branchRes = await ensureMainDefaultBranch(name);
+      const branchFailure = classifyFailure(branchRes);
+      if(branchFailure) return branchFailure;
 
       onStage("upload");
       const committed = await upsertIndexHtml(name, htmlContent);
-      if(committed.authError){
-        return { ok:false, reason:"auth", message: committed.message };
-      }
+      const committedFailure = classifyFailure(committed);
+      if(committedFailure) return committedFailure;
       if(!committed.ok){
         return { ok:false, reason:"error", message: committed.body?.message || "Could not upload index.html." };
       }
 
       onStage("pages");
       const pages = await enablePages(name);
-      if(pages.authError){
-        return { ok:false, reason:"auth", message: pages.message };
-      }
+      const pagesFailure = classifyFailure(pages);
+      if(pagesFailure) return pagesFailure;
       if(!pages.ok){
         return { ok:false, reason:"error", message: pages.body?.message || "Could not enable GitHub Pages." };
       }
 
       onStage("verify");
       onStage("deploy");
-      await waitForPagesBuild(name);
+      const build = await waitForPagesBuild(name);
+      if(!build.ok && build.status === "errored"){
+        return { ok:false, reason:"error", message:"GitHub Pages build failed for this repository. Check the repo's Pages settings for details." };
+      }
+      // A "timeout" status means the build simply took longer than we
+      // polled for — GitHub Pages often finishes shortly after. We don't
+      // fail the publish for this, since the deploy itself succeeded.
 
       onStage("final");
       sessionOwnedRepos.add(name);
 
+      // Confirm Pages is actually live and pull GitHub's own reported URL -
+      // for owner "hoppingsite" this is the same address HoppingSite shows,
+      // just fetched from the real API response rather than assumed.
+      const pagesInfo = await request(`/repos/${cfg.owner}/${name}/pages`, { method:"GET" });
+      const liveUrl = pagesInfo.ok && pagesInfo.body && pagesInfo.body.html_url
+        ? pagesInfo.body.html_url
+        : `https://${HoppingSiteConfig.brand.domainRoot}/${name}`;
+
       return {
         ok:true,
         repo:name,
-        // Real GitHub Pages URL would be https://{owner}.github.io/{name}.
-        // HoppingSite presents its own branded domain format per the brief.
-        url:`https://${HoppingSiteConfig.brand.domainRoot}/${name}`
+        url: liveUrl
       };
     }catch(err){
       return { ok:false, reason:"error", message: err && err.message ? err.message : "Something went wrong while publishing." };
@@ -1637,20 +1710,34 @@ const checkAvailability = debounce(async function(name){
   //     method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ name })
   //   }).then(r => r.json()).then(data => { ...use data.available... });
   let taken = false;
-  let checkFailed = false;
   let authFailed = false;
+  let forbidden = false;
+  let rateLimited = false;
+  let networkFailed = false;
+  let failureMessage = "";
   if(sessionOwnedRepos.has(name)){
     taken = false;
   } else {
-    try{
-      const res = await GitHubClient.getRepo(name);
-      if(res.authError){
-        authFailed = true;
-      } else {
-        taken = res.ok; // 200 = repo exists = name taken; 404 = free
-      }
-    }catch(err){
-      checkFailed = true;
+    const res = await GitHubClient.getRepo(name);
+    if(res.authError){
+      authFailed = true;
+      failureMessage = res.message;
+    } else if(res.forbidden){
+      forbidden = true;
+      failureMessage = res.message;
+    } else if(res.rateLimited){
+      rateLimited = true;
+      failureMessage = res.message;
+    } else if(res.networkError){
+      networkFailed = true;
+      failureMessage = res.message;
+    } else if(!res.ok && res.status !== 404){
+      // Any other non-404 failure (5xx, etc) - the check itself failed,
+      // it did NOT tell us the name is free, so don't report "available".
+      networkFailed = true;
+      failureMessage = "Couldn't reach GitHub to check that name. You can still try publishing.";
+    } else {
+      taken = res.ok; // 200 = repo exists = name taken; 404 = free
     }
   }
 
@@ -1658,17 +1745,36 @@ const checkAvailability = debounce(async function(name){
   if(sanitizeDomainInput(domainInput.value) !== name) return;
 
   if(authFailed){
+    // This is the ONLY path that shows the "not connected" message - it
+    // fires exclusively on a genuine 401 from GitHub, never as a generic
+    // fallback for other failure types.
     state.domainStatus = "idle";
     setDomainStatusIcon("idle");
-    setDomainMessage("HoppingSite isn't connected to GitHub yet, so availability can't be checked. You can still try publishing.", "error");
+    setDomainMessage(failureMessage || "HoppingSite isn't connected to GitHub yet, so availability can't be checked. You can still try publishing.", "error");
     updateSummary(); updatePublishState();
     return;
   }
 
-  if(checkFailed){
+  if(forbidden){
     state.domainStatus = "idle";
     setDomainStatusIcon("idle");
-    setDomainMessage("Couldn't reach GitHub to check that name. You can still try publishing.", "error");
+    setDomainMessage(failureMessage, "error");
+    updateSummary(); updatePublishState();
+    return;
+  }
+
+  if(rateLimited){
+    state.domainStatus = "idle";
+    setDomainStatusIcon("idle");
+    setDomainMessage(failureMessage, "error");
+    updateSummary(); updatePublishState();
+    return;
+  }
+
+  if(networkFailed){
+    state.domainStatus = "idle";
+    setDomainStatusIcon("idle");
+    setDomainMessage(failureMessage || "Couldn't reach GitHub to check that name. You can still try publishing.", "error");
     updateSummary(); updatePublishState();
     return;
   }
@@ -1937,6 +2043,18 @@ async function runDeployment(){
     } else if(result.reason === "auth"){
       const msg = result.message || "HoppingSite isn't connected to a working GitHub account yet.";
       showSnackbar(msg, "err", 8000);
+      setDomainMessage(msg, "error");
+    } else if(result.reason === "forbidden"){
+      const msg = result.message || "This GitHub token doesn't have permission to do that.";
+      showSnackbar(msg, "err", 8000);
+      setDomainMessage(msg, "error");
+    } else if(result.reason === "rate_limited"){
+      const msg = result.message || "GitHub rate limit reached. Try again shortly.";
+      showSnackbar(msg, "err", 8000);
+      setDomainMessage(msg, "error");
+    } else if(result.reason === "network"){
+      const msg = result.message || "Couldn't reach GitHub. Check your connection and try again.";
+      showSnackbar(msg, "err", 6000);
       setDomainMessage(msg, "error");
     } else {
       showSnackbar(result.message || "Publishing failed. Please try again.", "err", 6000);
