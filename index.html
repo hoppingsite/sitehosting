@@ -15,6 +15,16 @@
 <link rel="icon" type="image/png" href="https://i.ibb.co/NnnPscR9/logo-redesign.png">
 <link rel="apple-touch-icon" href="https://i.ibb.co/NnnPscR9/logo-redesign.png">
 
+<!-- PWA -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HoppingSite">
+<meta name="application-name" content="HoppingSite">
+<meta name="color-scheme" content="light">
+<!-- manifest is generated inline by script below (data: URI) so the whole
+     app stays a single index.html file with nothing else to host -->
+
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,7 +97,11 @@
 }
 
 *,*::before,*::after{ box-sizing:border-box; }
-html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+html{
+  scroll-behavior:smooth; -webkit-text-size-adjust:100%; text-size-adjust:100%;
+  width:100%;
+  overflow-x:hidden;
+}
 body{
   margin:0;
   font-family:var(--font-body);
@@ -95,33 +109,50 @@ body{
   background:var(--bg);
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
+  width:100%;
   min-height:100vh;
+  min-height:100svh; /* modern mobile browsers: excludes the collapsing address bar */
   padding-left:var(--safe-left);
   padding-right:var(--safe-right);
   overflow-x:hidden;
 }
+
 img{ max-width:100%; display:block; }
 button{ font-family:inherit; }
 a{ color:inherit; }
+
+/* Themed scrollbar - replaces the plain browser default everywhere so the
+   app doesn't visually break character on desktop / Android Chrome. */
+html{ scrollbar-width:thin; scrollbar-color:var(--primary) var(--slate-100); }
+::-webkit-scrollbar{ width:11px; height:11px; }
+::-webkit-scrollbar-track{ background:var(--slate-100); }
+::-webkit-scrollbar-thumb{
+  background:var(--secondary-orange);
+  border-radius:999px;
+  border:2.5px solid var(--slate-100);
+  background-clip:padding-box;
+}
+::-webkit-scrollbar-thumb:hover{ background:var(--primary); background-clip:padding-box; }
+::-webkit-scrollbar-corner{ background:var(--slate-100); }
 
 /* Theme-colored text selection */
 ::selection{ background:var(--primary); color:#fff; }
 ::-moz-selection{ background:var(--primary); color:#fff; }
 
 /* Custom themed cursor (desktop / mouse only - touch devices keep native)
-   Shape matches Font Awesome's regular "hand-pointer" glyph (fa-regular fa-hand-pointer),
+   Shape matches Font Awesome's solid "location-arrow" glyph (fa-solid fa-location-arrow),
    verified against the official Font Awesome Free SVG source.
-   Black by default; switches to orange over interactive elements and while
+   Black by default; switches to theme red over interactive elements and while
    the mouse button is held down. */
 @media (hover:hover) and (pointer:fine){
   html{
-    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="black" d="M160 64c0-8.8 7.2-16 16-16s16 7.2 16 16l0 136c0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 8.8 0 16 7.2 16 16 0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 7.8 0 14.3 5.6 15.7 13 1.6 8.2 7.3 15.1 15.1 18s16.7 1.6 23.3-3.6c2.7-2.1 6.1-3.4 9.9-3.4 8.8 0 16 7.2 16 16l0 120c0 39.8-32.2 72-72 72l-116.6 0c-37.4 0-72.4-18.7-93.2-49.9L50.7 312.9c-4.9-7.4-2.9-17.3 4.4-22.2s17.3-2.9 22.2 4.4L116 353.2c5.9 8.8 16.8 12.7 26.9 9.7s17-12.4 17-23L160 64zM176 0c-35.3 0-64 28.7-64 64l0 197.7C91.2 238 55.5 232.8 28.5 250.7-.9 270.4-8.9 310.1 10.8 339.5L78.3 440.8c29.7 44.5 79.6 71.2 133.1 71.2L328 512c66.3 0 120-53.7 120-120l0-120c0-35.3-28.7-64-64-64-4.5 0-8.8 .5-13 1.3-11.7-15.4-30.2-25.3-51-25.3-6.9 0-13.5 1.1-19.7 3.1-11.6-16.4-30.7-27.1-52.3-27.1-2.7 0-5.4 .2-8 .5L240 64c0-35.3-28.7-64-64-64zm48 304c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96zm48-16c-8.8 0-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96c0-8.8-7.2-16-16-16zm80 16c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96z"/></svg>') 4 2, auto;
+    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="black" transform="translate(448,0) scale(-1,1)" d="M429.6 92.1c4.9-11.9 2.1-25.6-7-34.7s-22.8-11.9-34.7-7l-352 144c-14.2 5.8-22.2 20.8-19.3 35.8s16.1 25.8 31.4 25.8H224V432c0 15.3 10.8 28.4 25.8 31.4s30-5.1 35.8-19.3l144-352z"/></svg>') 22 2, auto;
   }
   a, button, .btn, summary, input, label.dropzone, .nav-toggle, [role="button"], [tabindex]:not([tabindex="-1"]), select, .expiry-chip, .copy-btn, .file-chip-remove, .deploy-pill{
-    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23FF9800" d="M160 64c0-8.8 7.2-16 16-16s16 7.2 16 16l0 136c0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 8.8 0 16 7.2 16 16 0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 7.8 0 14.3 5.6 15.7 13 1.6 8.2 7.3 15.1 15.1 18s16.7 1.6 23.3-3.6c2.7-2.1 6.1-3.4 9.9-3.4 8.8 0 16 7.2 16 16l0 120c0 39.8-32.2 72-72 72l-116.6 0c-37.4 0-72.4-18.7-93.2-49.9L50.7 312.9c-4.9-7.4-2.9-17.3 4.4-22.2s17.3-2.9 22.2 4.4L116 353.2c5.9 8.8 16.8 12.7 26.9 9.7s17-12.4 17-23L160 64zM176 0c-35.3 0-64 28.7-64 64l0 197.7C91.2 238 55.5 232.8 28.5 250.7-.9 270.4-8.9 310.1 10.8 339.5L78.3 440.8c29.7 44.5 79.6 71.2 133.1 71.2L328 512c66.3 0 120-53.7 120-120l0-120c0-35.3-28.7-64-64-64-4.5 0-8.8 .5-13 1.3-11.7-15.4-30.2-25.3-51-25.3-6.9 0-13.5 1.1-19.7 3.1-11.6-16.4-30.7-27.1-52.3-27.1-2.7 0-5.4 .2-8 .5L240 64c0-35.3-28.7-64-64-64zm48 304c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96zm48-16c-8.8 0-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96c0-8.8-7.2-16-16-16zm80 16c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96z"/></svg>') 4 2, pointer;
+    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23F44336" transform="translate(448,0) scale(-1,1)" d="M429.6 92.1c4.9-11.9 2.1-25.6-7-34.7s-22.8-11.9-34.7-7l-352 144c-14.2 5.8-22.2 20.8-19.3 35.8s16.1 25.8 31.4 25.8H224V432c0 15.3 10.8 28.4 25.8 31.4s30-5.1 35.8-19.3l144-352z"/></svg>') 22 2, pointer;
   }
   html:active, body:active{
-    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23FF9800" d="M160 64c0-8.8 7.2-16 16-16s16 7.2 16 16l0 136c0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 8.8 0 16 7.2 16 16 0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 7.8 0 14.3 5.6 15.7 13 1.6 8.2 7.3 15.1 15.1 18s16.7 1.6 23.3-3.6c2.7-2.1 6.1-3.4 9.9-3.4 8.8 0 16 7.2 16 16l0 120c0 39.8-32.2 72-72 72l-116.6 0c-37.4 0-72.4-18.7-93.2-49.9L50.7 312.9c-4.9-7.4-2.9-17.3 4.4-22.2s17.3-2.9 22.2 4.4L116 353.2c5.9 8.8 16.8 12.7 26.9 9.7s17-12.4 17-23L160 64zM176 0c-35.3 0-64 28.7-64 64l0 197.7C91.2 238 55.5 232.8 28.5 250.7-.9 270.4-8.9 310.1 10.8 339.5L78.3 440.8c29.7 44.5 79.6 71.2 133.1 71.2L328 512c66.3 0 120-53.7 120-120l0-120c0-35.3-28.7-64-64-64-4.5 0-8.8 .5-13 1.3-11.7-15.4-30.2-25.3-51-25.3-6.9 0-13.5 1.1-19.7 3.1-11.6-16.4-30.7-27.1-52.3-27.1-2.7 0-5.4 .2-8 .5L240 64c0-35.3-28.7-64-64-64zm48 304c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96zm48-16c-8.8 0-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96c0-8.8-7.2-16-16-16zm80 16c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96z"/></svg>') 4 2, pointer;
+    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23F44336" transform="translate(448,0) scale(-1,1)" d="M429.6 92.1c4.9-11.9 2.1-25.6-7-34.7s-22.8-11.9-34.7-7l-352 144c-14.2 5.8-22.2 20.8-19.3 35.8s16.1 25.8 31.4 25.8H224V432c0 15.3 10.8 28.4 25.8 31.4s30-5.1 35.8-19.3l144-352z"/></svg>') 22 2, pointer;
   }
 }
 
@@ -209,6 +240,45 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .nav-toggle{
   display:none; width:40px; height:40px; border-radius:10px; border:1px solid var(--slate-200);
   background:var(--surface); align-items:center; justify-content:center; cursor:pointer;
+}
+.header-actions{ display:flex; align-items:center; gap:10px; }
+
+/* Install button - top-corner, app-like, not a browser default affordance */
+.install-btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border:none; border-radius:var(--radius-pill); cursor:pointer;
+  font-family:inherit; font-weight:700; -webkit-tap-highlight-color:transparent;
+  background:var(--blue-600); color:#fff;
+  box-shadow:0 8px 20px rgba(244,67,54,.3), inset 0 1px 0 rgba(255,255,255,.2);
+  transition:transform .18s var(--ease-out), box-shadow .18s var(--ease-out), opacity .18s var(--ease-out);
+  animation:installPulseIn .4s var(--ease-spring) both;
+}
+.install-btn:hover{ transform:translateY(-2px); box-shadow:0 12px 26px rgba(244,67,54,.4); }
+.install-btn:active{ transform:translateY(0) scale(.97); }
+.install-btn.hidden{ display:none !important; }
+@keyframes installPulseIn{
+  0%{ opacity:0; transform:translateY(-6px) scale(.9); }
+  100%{ opacity:1; transform:translateY(0) scale(1); }
+}
+.install-btn-nav{ font-size:14px; padding:9px 18px; }
+.install-btn-top{ font-size:13.5px; padding:9px 16px; display:none; }
+.install-btn-top span{ display:inline; }
+
+/* If the app is already running installed (standalone), hide both install
+   buttons at the CSS level too - this covers the instant before JS runs,
+   so there's never a flash of an "Install" button inside the installed app. */
+@media (display-mode: standalone), (display-mode: window-controls-overlay){
+  .install-btn-nav, .install-btn-top{ display:none !important; }
+}
+
+@media (max-width: 680px){
+  .install-btn-nav{ display:none; } /* the nav drawer version is redundant once the compact top-corner button is visible */
+  .install-btn-top:not(.hidden){ display:inline-flex; } /* becomes the visible one on mobile, still gated by JS's hidden class */
+  .install-btn-top{ padding:9px 12px; }
+}
+@media (max-width: 360px){
+  .install-btn-top span{ display:none; } /* icon-only on very narrow phones */
+  .install-btn-top{ width:38px; height:38px; padding:0; border-radius:50%; }
 }
 
 /* Hero / splash */
@@ -845,6 +915,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background:var(--warning-bg); color:var(--yellow-600);
   display:flex; align-items:center; justify-content:center; font-size:22px;
 }
+.modal-icon-brand{ background:var(--primary); color:#fff; box-shadow:0 8px 20px rgba(244,67,54,.3); }
 .modal-box h3{ font-family:var(--font-display); font-size:17px; margin:0 0 8px; }
 .modal-box p{ font-size:13.5px; color:var(--slate-500); line-height:1.55; margin:0 0 16px; }
 .suggestion-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
@@ -854,6 +925,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   transition:all .18s;
 }
 .suggestion-chip:hover{ border-color:var(--blue-400); background:#FFF3F1; color:var(--blue-600); }
+
+/* iOS install steps list */
+.install-steps{ list-style:none; margin:0 0 20px; padding:0; display:flex; flex-direction:column; gap:12px; text-align:left; }
+.install-steps li{ display:flex; align-items:flex-start; gap:12px; font-size:13.5px; color:var(--ink-900); line-height:1.5; }
+.install-step-num{
+  flex:none; width:24px; height:24px; border-radius:50%;
+  background:var(--slate-100); color:var(--primary); font-weight:700; font-size:12px;
+  display:flex; align-items:center; justify-content:center;
+}
+.install-steps i{ color:var(--primary); }
 
 /* Skeleton (used briefly while "checking availability") */
 .skeleton{
@@ -866,10 +947,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    Page loading screen
    ============================================================ */
 #pageLoader{
-  position:fixed; inset:0; z-index:9999;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  z-index:9999;
+  width:100%;
+  height:100vh;
+  height:100dvh;  /* dynamic viewport unit: accounts for Android/iOS toolbar show/hide, prevents gaps */
   background:var(--bg);
-  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:22px;
+  padding:calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left));
+  -webkit-tap-highlight-color:transparent;
   transition:opacity .4s var(--ease-out), visibility .4s var(--ease-out);
+}
+/* Fallback for browsers without dvh support (older WebViews) - JS also sets
+   an --app-vh custom property from window.innerHeight as a belt-and-braces
+   fix on Android where 100vh can otherwise be taller than the visible area. */
+@supports not (height: 100dvh){
+  #pageLoader{ height:calc(var(--app-vh, 1vh) * 100); }
 }
 #pageLoader.loaded{ opacity:0; visibility:hidden; pointer-events:none; }
 .loader-mark{
@@ -877,6 +971,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   background:var(--primary);
   box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.25);
   display:flex; align-items:center; justify-content:center;
+  flex:none;
   animation:loaderPulse 1.4s ease-in-out infinite;
 }
 .loader-mark img{ width:100%; height:100%; object-fit:contain; border-radius:11px; }
@@ -884,10 +979,27 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   0%,100%{ transform:scale(1); }
   50%{ transform:scale(1.06); }
 }
-.loader-spin{
-  width:26px; height:26px; border-radius:50%;
-  border:3px solid var(--slate-200); border-top-color:var(--primary);
-  animation:spin .9s linear infinite;
+
+/* Three-dot bounce indicator (replaces the old spinner ring) */
+.loader-dots{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  height:14px;
+}
+.loader-dots span{
+  width:10px; height:10px; border-radius:50%;
+  background:var(--primary);
+  animation:loaderDotBounce 1.1s ease-in-out infinite both;
+}
+.loader-dots span:nth-child(1){ animation-delay:-0.24s; }
+.loader-dots span:nth-child(2){ animation-delay:-0.12s; }
+.loader-dots span:nth-child(3){ animation-delay:0s; }
+@keyframes loaderDotBounce{
+  0%, 80%, 100%{ transform:scale(.6); opacity:.4; }
+  40%{ transform:scale(1); opacity:1; }
+}
+@media (prefers-reduced-motion: reduce){
+  .loader-dots span{ animation:loaderDotFade 1.4s ease-in-out infinite; }
+  @keyframes loaderDotFade{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
 }
 
 /* ============================================================
@@ -1028,8 +1140,127 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   <div class="loader-mark">
     <img src="https://i.ibb.co/NnnPscR9/logo-redesign.png" alt="" width="60" height="60">
   </div>
-  <div class="loader-spin"></div>
+  <div class="loader-dots" role="status" aria-label="Loading">
+    <span></span><span></span><span></span>
+  </div>
 </div>
+<noscript>
+  <style>
+    /* Without JS the loader can never be dismissed, so if scripts are
+       disabled, skip it entirely and show the real page immediately. */
+    #pageLoader{ display:none; }
+  </style>
+</noscript>
+
+<script>
+/* Standalone, minimal-dependency failsafe: hides the loading screen no
+   matter what happens in the rest of the page's JS further down. It does
+   not rely on the main app script or any function defined elsewhere.
+   Hides as soon as the DOM is parsed (not waiting on every external
+   asset like fonts/icons, which can be slow on some networks), with a
+   short hard cap as a backstop so it can never get stuck on screen. */
+(function(){
+  var hidden = false;
+  function hideLoader(){
+    if(hidden) return;
+    hidden = true;
+    var loader = document.getElementById("pageLoader");
+    if(loader){
+      loader.classList.add("loaded");
+      setTimeout(function(){ if(loader.parentNode) loader.parentNode.removeChild(loader); }, 500);
+    }
+  }
+  if(document.readyState === "interactive" || document.readyState === "complete"){
+    hideLoader();
+  } else {
+    document.addEventListener("DOMContentLoaded", hideLoader, { once:true });
+  }
+  window.addEventListener("load", hideLoader, { once:true });
+  // Hard backstop: never keep the loader up longer than 1.5s regardless.
+  setTimeout(hideLoader, 1500);
+})();
+</script>
+
+<script>
+/* ============================================================
+   PWA setup - manifest + service worker, both generated inline so
+   the whole app stays a single index.html with nothing else to host
+   on GitHub Pages. Runs standalone/early, independent of the main
+   app script below, so installability never depends on anything
+   else on the page succeeding first.
+   ============================================================ */
+(function(){
+  "use strict";
+  var ICON_URL = "https://i.ibb.co/NnnPscR9/logo-redesign.png";
+
+  // ---- 1. Inline Web App Manifest (data: URI) ----
+  var manifest = {
+    name: "HoppingSite",
+    short_name: "HoppingSite",
+    description: "Publish your site, free, in seconds - drop an index.html, pick a subdomain, publish instantly on GitHub Pages.",
+    start_url: location.pathname + location.search,
+    scope: location.pathname.replace(/[^/]*$/, ""),
+    display: "standalone",
+    display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
+    orientation: "portrait-primary",
+    background_color: "#FFF8F5",
+    theme_color: "#F44336",
+    icons: [
+      { src: ICON_URL, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: ICON_URL, sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: ICON_URL, sizes: "512x512", type: "image/png", purpose: "maskable" }
+    ]
+  };
+  try{
+    var manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+    var manifestUrl = URL.createObjectURL(manifestBlob);
+    var link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = manifestUrl;
+    document.head.appendChild(link);
+  }catch(err){ /* manifest is progressive enhancement - safe to skip on failure */ }
+
+  // ---- 2. Inline Service Worker (Blob URL) ----
+  // A service worker is required by Chrome/Edge/Android for installability.
+  // It's built at runtime from a string and registered from a Blob URL, so
+  // there's still only one physical file (index.html) to deploy.
+  if("serviceWorker" in navigator){
+    var swSource = [
+      'const CACHE = "hoppingsite-v1";',
+      'self.addEventListener("install", (e) => { self.skipWaiting(); });',
+      'self.addEventListener("activate", (e) => {',
+      '  e.waitUntil(',
+      '    caches.keys().then((keys) => Promise.all(',
+      '      keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))',
+      '    )).then(() => self.clients.claim())',
+      '  );',
+      '});',
+      'self.addEventListener("fetch", (e) => {',
+      '  if(e.request.method !== "GET") return;',
+      '  e.respondWith(',
+      '    caches.match(e.request).then((cached) => {',
+      '      const fetchPromise = fetch(e.request).then((res) => {',
+      '        if(res && res.status === 200 && res.type === "basic"){',
+      '          const copy = res.clone();',
+      '          caches.open(CACHE).then((c) => c.put(e.request, copy));',
+      '        }',
+      '        return res;',
+      '      }).catch(() => cached);',
+      '      return cached || fetchPromise;',
+      '    })',
+      '  );',
+      '});'
+    ].join("\n");
+    try{
+      var swBlob = new Blob([swSource], { type: "application/javascript" });
+      var swUrl = URL.createObjectURL(swBlob);
+      window.addEventListener("load", function(){
+        navigator.serviceWorker.register(swUrl).catch(function(){ /* installability degrades gracefully without it */ });
+      });
+    }catch(err){ /* no-op: app still works fully without a service worker */ }
+  }
+})();
+</script>
 
 <a href="#main" class="skip-link">Skip to content</a>
 
@@ -1049,10 +1280,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <a href="https://docs.github.com/pages" target="_blank" rel="noopener">
         <i class="fa-solid fa-book" aria-hidden="true"></i> Documentation
       </a>
+      <button type="button" class="install-btn install-btn-nav" id="installBtnNav">
+        <i class="fa-solid fa-arrow-down-to-line" aria-hidden="true"></i> Install
+      </button>
     </nav>
-    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="headerNav">
-      <i class="fa-solid fa-bars" aria-hidden="true"></i>
-    </button>
+    <div class="header-actions">
+      <button type="button" class="install-btn install-btn-top" id="installBtnTop" aria-label="Install app">
+        <i class="fa-solid fa-arrow-down-to-line" aria-hidden="true"></i>
+        <span>Install</span>
+      </button>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="headerNav">
+        <i class="fa-solid fa-bars" aria-hidden="true"></i>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -1157,7 +1397,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <div class="domain-input-row" id="domainRow">
           <span class="domain-status-icon" id="domainStatusIcon" aria-hidden="true"></span>
           <span class="domain-prefix" id="domainPrefix">hoppingsite.github.io/</span>
-          <input type="text" id="domainInput" placeholder="your-site-name" maxlength="40"
+          <input type="text" id="domainInput" placeholder="yoursite" maxlength="40"
                  autocomplete="off" autocapitalize="off" spellcheck="false"
                  aria-describedby="domainHelper" aria-label="Desired subdomain name, added after hoppingsite.github.io/">
         </div>
@@ -1413,6 +1653,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     <p id="unavailableText"><strong>examplesite</strong> is already in use. Try one of these instead, or tweak your name.</p>
     <div class="suggestion-chips" id="suggestionChips"></div>
     <button type="button" class="btn btn-secondary" style="width:100%;" id="unavailableCloseBtn">Choose another name</button>
+  </div>
+</div>
+
+<!-- iOS/iPadOS: Apple gives Safari no install-prompt API, so the OS-level
+     install step is the Share sheet's "Add to Home Screen" - this produces
+     a genuine standalone app (own icon, full-screen, own app-switcher
+     entry, works offline), not a bookmark. -->
+<div class="modal-backdrop" id="iosInstallModal" role="dialog" aria-modal="true" aria-labelledby="iosInstallTitle">
+  <div class="modal-box">
+    <div class="modal-icon modal-icon-brand"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i></div>
+    <h3 id="iosInstallTitle">Install HoppingSite</h3>
+    <p>This installs HoppingSite as a real app on your iPhone or iPad - full-screen, its own icon, no browser bar. Takes two taps:</p>
+    <ol class="install-steps">
+      <li><span class="install-step-num">1</span><span>Tap the <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> <strong>Share</strong> button in Safari's toolbar</span></li>
+      <li><span class="install-step-num">2</span><span>Tap <strong>Add to Home Screen</strong></span></li>
+      <li><span class="install-step-num">3</span><span>Tap <strong>Add</strong> to finish installing</span></li>
+    </ol>
+    <button type="button" class="btn btn-primary" style="width:100%;" id="iosInstallCloseBtn">Got it</button>
   </div>
 </div>
 
@@ -3354,30 +3612,143 @@ headerNav.querySelectorAll("a").forEach(a=>{
 })();
 
 /* ============================================================
+   PWA install button (top-corner "Install" + nav-drawer twin)
+   ============================================================ */
+(function(){
+  const installBtnTop = $("#installBtnTop");
+  const installBtnNav = $("#installBtnNav");
+  const iosInstallModal = $("#iosInstallModal");
+  const iosInstallCloseBtn = $("#iosInstallCloseBtn");
+  if(!installBtnTop || !installBtnNav) return;
+
+  const isStandalone = () =>
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+    window.navigator.standalone === true; // iOS Safari's own flag once added to Home Screen
+
+  const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
+
+  // Chromium-family browsers (Chrome, Edge, Brave, Samsung Internet, Opera,
+  // Android WebView) support the native install prompt. Other engines
+  // (Safari, Firefox) never fire beforeinstallprompt at all.
+  const isChromiumFamily = () => /Chrome|Chromium|Edg|OPR|SamsungBrowser|CriOS/.test(navigator.userAgent) && !/Firefox/.test(navigator.userAgent);
+
+  let deferredPrompt = null;
+  let promptReadyResolvers = [];
+  function waitForPrompt(timeoutMs){
+    if(deferredPrompt) return Promise.resolve(deferredPrompt);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), timeoutMs);
+      promptReadyResolvers.push((p) => { clearTimeout(timer); resolve(p); });
+    });
+  }
+
+  function showInstallButtons(){
+    installBtnTop.classList.remove("hidden");
+    installBtnNav.classList.remove("hidden");
+  }
+  function hideInstallButtons(){
+    installBtnTop.classList.add("hidden");
+    installBtnNav.classList.add("hidden");
+  }
+
+  // Show the button immediately on every device/browser - we don't wait
+  // for beforeinstallprompt to decide whether it's worth offering, since
+  // that event can be slow or (on some browsers) never fire even though
+  // installing is still possible via the browser's own menu. The only
+  // case we actively hide it is when the app is already running installed.
+  if(isStandalone()){
+    hideInstallButtons();
+  } else {
+    showInstallButtons();
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallButtons();
+    promptReadyResolvers.forEach((fn) => fn(e));
+    promptReadyResolvers = [];
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null;
+    hideInstallButtons();
+    showSnackbar("HoppingSite installed - open it from your home screen or app list.", "ok", 4000);
+  });
+
+  async function handleInstallClick(){
+    // Chromium-family browsers: trigger the real native OS install dialog.
+    // If the browser hasn't fired beforeinstallprompt yet (e.g. the button
+    // was clicked right after page load), wait briefly for it instead of
+    // immediately giving up - this is what actually makes the button work
+    // rather than just pointing at the address bar.
+    if(!deferredPrompt && isChromiumFamily() && !isIOS()){
+      installBtnTop.disabled = true;
+      installBtnNav.disabled = true;
+      await waitForPrompt(2500);
+      installBtnTop.disabled = false;
+      installBtnNav.disabled = false;
+    }
+    if(deferredPrompt){
+      installBtnTop.disabled = true;
+      installBtnNav.disabled = true;
+      const promptEvent = deferredPrompt;
+      deferredPrompt = null;
+      promptEvent.prompt();
+      try{
+        const { outcome } = await promptEvent.userChoice;
+        if(outcome !== "accepted"){ showSnackbar("Install cancelled.", "info", 2500); }
+      }catch(err){ /* user dismissed */ }
+      installBtnTop.disabled = false;
+      installBtnNav.disabled = false;
+      return;
+    }
+    // iOS/iPadOS: Apple gives web pages no install API at all - the Share
+    // sheet's "Add to Home Screen" *is* the OS-level install mechanism
+    // here (it produces a standalone, full-screen, icon-having app, not a
+    // bookmark). Walk people through it with a proper guided screen.
+    if(isIOS() && iosInstallModal){
+      iosInstallModal.classList.add("show");
+      return;
+    }
+    // Only reaches here on engines with no install mechanism at all
+    // (desktop Safari, Firefox) - nothing left to trigger programmatically.
+    showSnackbar("This browser doesn't support app installs yet - try Chrome or Edge, or open this page on your phone.", "info", 5000);
+  }
+
+  installBtnTop.addEventListener("click", handleInstallClick);
+  installBtnNav.addEventListener("click", handleInstallClick);
+
+  if(iosInstallModal && iosInstallCloseBtn){
+    const closeIosModal = () => iosInstallModal.classList.remove("show");
+    iosInstallCloseBtn.addEventListener("click", closeIosModal);
+    iosInstallModal.addEventListener("click", (e)=>{ if(e.target === iosInstallModal) closeIosModal(); });
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && iosInstallModal.classList.contains("show")) closeIosModal(); });
+  }
+})();
+
+/* ============================================================
    Init
    ============================================================ */
 updateSummary();
 updatePublishState();
 updateLivePreview("");
 
-/* Page loading screen - fades out once the page (and its assets,
-   including the logo) has fully loaded, with a minimum-visible time
-   so it never feels like a flicker on fast connections. */
-const pageLoader = $("#pageLoader");
-if(pageLoader){
-  const minVisibleMs = 350;
-  const shownAt = performance.now();
-  const hideLoader = () => {
-    const elapsed = performance.now() - shownAt;
-    const wait = Math.max(0, minVisibleMs - elapsed);
-    setTimeout(()=>{
-      pageLoader.classList.add("loaded");
-      setTimeout(()=> pageLoader.remove(), 500);
-    }, wait);
-  };
-  if(document.readyState === "complete"){ hideLoader(); }
-  else { window.addEventListener("load", hideLoader, { once:true }); }
-}
+/* --app-vh: a JS-measured 1% of the real visible viewport height, kept in
+   sync on resize/orientation change. Used only as a fallback for browsers
+   that don't support the `dvh` CSS unit (mainly older Android WebViews). */
+const setAppVh = () => {
+  document.documentElement.style.setProperty("--app-vh", (window.innerHeight * 0.01) + "px");
+};
+setAppVh();
+window.addEventListener("resize", setAppVh);
+window.addEventListener("orientationchange", setAppVh);
+// Note: the page loading screen's own show/hide logic lives in a small
+// standalone script right after its markup, near the top of <body> - it
+// runs independently of this script so the loader is never at the mercy
+// of anything below it.
 
 })();
 </script>
