@@ -104,6 +104,27 @@ img{ max-width:100%; display:block; }
 button{ font-family:inherit; }
 a{ color:inherit; }
 
+/* Theme-colored text selection */
+::selection{ background:var(--primary); color:#fff; }
+::-moz-selection{ background:var(--primary); color:#fff; }
+
+/* Custom themed cursor (desktop / mouse only - touch devices keep native)
+   Shape matches Font Awesome's regular "hand-pointer" glyph (fa-regular fa-hand-pointer),
+   verified against the official Font Awesome Free SVG source.
+   Black by default; switches to orange over interactive elements and while
+   the mouse button is held down. */
+@media (hover:hover) and (pointer:fine){
+  html{
+    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="black" d="M160 64c0-8.8 7.2-16 16-16s16 7.2 16 16l0 136c0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 8.8 0 16 7.2 16 16 0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 7.8 0 14.3 5.6 15.7 13 1.6 8.2 7.3 15.1 15.1 18s16.7 1.6 23.3-3.6c2.7-2.1 6.1-3.4 9.9-3.4 8.8 0 16 7.2 16 16l0 120c0 39.8-32.2 72-72 72l-116.6 0c-37.4 0-72.4-18.7-93.2-49.9L50.7 312.9c-4.9-7.4-2.9-17.3 4.4-22.2s17.3-2.9 22.2 4.4L116 353.2c5.9 8.8 16.8 12.7 26.9 9.7s17-12.4 17-23L160 64zM176 0c-35.3 0-64 28.7-64 64l0 197.7C91.2 238 55.5 232.8 28.5 250.7-.9 270.4-8.9 310.1 10.8 339.5L78.3 440.8c29.7 44.5 79.6 71.2 133.1 71.2L328 512c66.3 0 120-53.7 120-120l0-120c0-35.3-28.7-64-64-64-4.5 0-8.8 .5-13 1.3-11.7-15.4-30.2-25.3-51-25.3-6.9 0-13.5 1.1-19.7 3.1-11.6-16.4-30.7-27.1-52.3-27.1-2.7 0-5.4 .2-8 .5L240 64c0-35.3-28.7-64-64-64zm48 304c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96zm48-16c-8.8 0-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96c0-8.8-7.2-16-16-16zm80 16c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96z"/></svg>') 4 2, auto;
+  }
+  a, button, .btn, summary, input, label.dropzone, .nav-toggle, [role="button"], [tabindex]:not([tabindex="-1"]), select, .expiry-chip, .copy-btn, .file-chip-remove, .deploy-pill{
+    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23FF9800" d="M160 64c0-8.8 7.2-16 16-16s16 7.2 16 16l0 136c0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 8.8 0 16 7.2 16 16 0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 7.8 0 14.3 5.6 15.7 13 1.6 8.2 7.3 15.1 15.1 18s16.7 1.6 23.3-3.6c2.7-2.1 6.1-3.4 9.9-3.4 8.8 0 16 7.2 16 16l0 120c0 39.8-32.2 72-72 72l-116.6 0c-37.4 0-72.4-18.7-93.2-49.9L50.7 312.9c-4.9-7.4-2.9-17.3 4.4-22.2s17.3-2.9 22.2 4.4L116 353.2c5.9 8.8 16.8 12.7 26.9 9.7s17-12.4 17-23L160 64zM176 0c-35.3 0-64 28.7-64 64l0 197.7C91.2 238 55.5 232.8 28.5 250.7-.9 270.4-8.9 310.1 10.8 339.5L78.3 440.8c29.7 44.5 79.6 71.2 133.1 71.2L328 512c66.3 0 120-53.7 120-120l0-120c0-35.3-28.7-64-64-64-4.5 0-8.8 .5-13 1.3-11.7-15.4-30.2-25.3-51-25.3-6.9 0-13.5 1.1-19.7 3.1-11.6-16.4-30.7-27.1-52.3-27.1-2.7 0-5.4 .2-8 .5L240 64c0-35.3-28.7-64-64-64zm48 304c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96zm48-16c-8.8 0-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96c0-8.8-7.2-16-16-16zm80 16c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96z"/></svg>') 4 2, pointer;
+  }
+  html:active, body:active{
+    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23FF9800" d="M160 64c0-8.8 7.2-16 16-16s16 7.2 16 16l0 136c0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 8.8 0 16 7.2 16 16 0 10.3 6.6 19.5 16.4 22.8s20.6-.1 26.8-8.3c3-3.9 7.6-6.4 12.8-6.4 7.8 0 14.3 5.6 15.7 13 1.6 8.2 7.3 15.1 15.1 18s16.7 1.6 23.3-3.6c2.7-2.1 6.1-3.4 9.9-3.4 8.8 0 16 7.2 16 16l0 120c0 39.8-32.2 72-72 72l-116.6 0c-37.4 0-72.4-18.7-93.2-49.9L50.7 312.9c-4.9-7.4-2.9-17.3 4.4-22.2s17.3-2.9 22.2 4.4L116 353.2c5.9 8.8 16.8 12.7 26.9 9.7s17-12.4 17-23L160 64zM176 0c-35.3 0-64 28.7-64 64l0 197.7C91.2 238 55.5 232.8 28.5 250.7-.9 270.4-8.9 310.1 10.8 339.5L78.3 440.8c29.7 44.5 79.6 71.2 133.1 71.2L328 512c66.3 0 120-53.7 120-120l0-120c0-35.3-28.7-64-64-64-4.5 0-8.8 .5-13 1.3-11.7-15.4-30.2-25.3-51-25.3-6.9 0-13.5 1.1-19.7 3.1-11.6-16.4-30.7-27.1-52.3-27.1-2.7 0-5.4 .2-8 .5L240 64c0-35.3-28.7-64-64-64zm48 304c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96zm48-16c-8.8 0-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96c0-8.8-7.2-16-16-16zm80 16c0-8.8-7.2-16-16-16s-16 7.2-16 16l0 96c0 8.8 7.2 16 16 16s16-7.2 16-16l0-96z"/></svg>') 4 2, pointer;
+  }
+}
+
 /* Fluid type baseline */
 html{ font-size:clamp(15px, 0.9vw + 12px, 16.5px); }
 
@@ -159,7 +180,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .brand-mark{
   width:46px; height:46px; border-radius:12px; flex:none;
   display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(155deg, var(--primary), var(--primary-hover));
+  background:var(--primary);
   box-shadow:0 4px 14px rgba(244,67,54,.28), inset 0 1px 0 rgba(255,255,255,.25);
   padding:7px;
 }
@@ -169,6 +190,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .brand-name{ font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:-.01em; color:var(--ink-900); }
 .brand-name .dot{ color:var(--primary); }
+.brand-name-accent{ color:var(--primary); }
 
 .header-nav{ display:flex; align-items:center; gap:22px; }
 .header-nav a{
@@ -205,7 +227,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .hero-logo-wrap{
   width:112px; height:112px; margin:0 auto 24px; padding:16px;
   border-radius:24px;
-  background:linear-gradient(155deg, var(--primary), var(--primary-hover));
+  background:var(--primary);
   box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.25);
   display:flex; align-items:center; justify-content:center;
   animation:fadeUp .6s var(--ease-out) both .05s;
@@ -216,17 +238,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .hero h1{
   font-family:var(--font-display); font-weight:700;
-  font-size:clamp(30px, 5.4vw, 46px); line-height:1.1; letter-spacing:-.02em;
-  margin:0 0 14px;
+  font-size:clamp(28px, 4.6vw, 42px); line-height:1.16; letter-spacing:-.02em;
+  margin:0 auto 14px; max-width:640px;
   animation:fadeUp .6s var(--ease-out) both .1s;
 }
 .hero h1 .grad{
-  color:var(--blue-600);
+  color:var(--primary);
 }
 .hero p{
   color:var(--slate-500); font-size:16.5px; line-height:1.6;
   max-width:480px; margin:0 auto; 
   animation:fadeUp .6s var(--ease-out) both .16s;
+}
+.hero-lede{
+  max-width:640px; text-align:center; margin-left:auto; margin-right:auto;
+}
+@media (max-width:680px){
+  .hero-lede{ max-width:440px; }
 }
 
 @keyframes fadeUp{
@@ -251,7 +279,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .card-icon{
   width:40px; height:40px; border-radius:13px; flex:none;
   display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(155deg, var(--primary), var(--primary-hover));
+  background:var(--primary);
   color:#fff; font-size:15px; box-shadow:0 4px 12px rgba(244,67,54,.28);
 }
 .card-title{ display:flex; flex-direction:column; gap:2px; }
@@ -349,22 +377,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   display:flex; align-items:stretch;
   border:1.5px solid var(--slate-200); border-radius:var(--radius-md);
   overflow:hidden; background:var(--surface-2);
-  transition:border-color .2s var(--ease-out), box-shadow .2s var(--ease-out);
+  box-shadow:none;
+  transition:border-color .2s var(--ease-out), box-shadow .2s var(--ease-out), background .2s var(--ease-out);
 }
-.domain-input-row:focus-within{ border-color:var(--blue-600); box-shadow:var(--shadow-focus); background:var(--surface); }
+.domain-input-row:focus-within{ border-color:var(--primary); background:var(--surface); }
 .domain-input-row.is-invalid{ border-color:var(--danger); }
 .domain-input-row.is-valid{ border-color:var(--success); }
 .domain-input-row input{
   flex:1; min-width:0; border:none; background:transparent; outline:none;
-  padding:14px 4px 14px 16px; font-family:var(--font-mono); font-size:14.5px; color:var(--ink-900);
+  padding:14px 16px 14px 0; font-family:var(--font-mono); font-size:13.5px; font-weight:600; color:var(--ink-900);
 }
-.domain-input-row input::placeholder{ color:var(--slate-400); }
-.domain-suffix{
-  display:flex; align-items:center; gap:6px;
-  padding:0 16px; font-family:var(--font-mono); font-size:13.5px; color:var(--slate-500);
-  background:var(--slate-100); border-left:1px solid var(--slate-200); white-space:nowrap;
+.domain-input-row input::placeholder{ color:var(--slate-400); font-weight:500; }
+.domain-prefix{
+  display:flex; align-items:center; flex:none;
+  padding:0 0 0 16px; font-family:var(--font-mono); font-size:13.5px; font-weight:600;
+  color:var(--slate-500); white-space:nowrap; user-select:none; cursor:default;
 }
-.domain-status-icon{ width:20px; display:flex; align-items:center; justify-content:center; margin-right:6px; flex:none; }
+.domain-status-icon{ width:20px; display:flex; align-items:center; justify-content:center; margin-left:12px; margin-right:2px; flex:none; }
 .domain-status-icon .fa-spinner{ color:var(--slate-400); }
 .domain-status-icon .fa-circle-check{ color:var(--success); }
 .domain-status-icon .fa-circle-xmark{ color:var(--danger); }
@@ -578,7 +607,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    browsing the rest of the page while publishing continues in the
    background, and click back in at any time. */
 .deploy-pill{
-  position:fixed; bottom:22px; right:22px; z-index:210;
+  position:fixed; bottom:calc(22px + var(--safe-bottom)); right:calc(22px + var(--safe-right)); z-index:210;
   display:flex; align-items:center; gap:12px;
   background:var(--ink-900); color:#fff;
   padding:12px 16px 12px 12px; border-radius:var(--radius-pill);
@@ -586,6 +615,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   cursor:pointer; pointer-events:auto;
   transform:translateY(12px) scale(.95); opacity:0;
   transition:all .3s var(--ease-spring);
+  max-width:calc(100vw - 32px);
 }
 .deploy-pill.show{ transform:translateY(0) scale(1); opacity:1; }
 .deploy-pill-ring{
@@ -606,6 +636,45 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   flex-shrink:0;
 }
 .deploy-pill-close:hover{ background:rgba(255,255,255,.24); }
+
+/* Slim side progress indicator - survives minimize AND close so an
+   in-flight publish is never silently invisible. Fixed to the right
+   edge of the viewport, vertically centered. */
+.side-progress{
+  position:fixed; right:0; top:50%; translate:0 -50%; z-index:205;
+  padding-right:var(--safe-right);
+  display:flex; align-items:center; gap:0; cursor:pointer;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform:translateX(8px); transition:opacity .25s var(--ease-out), transform .25s var(--ease-out), visibility .25s;
+}
+.side-progress.show{ opacity:1; visibility:visible; pointer-events:auto; transform:translateX(0); }
+.side-progress-track{
+  width:5px; height:120px; border-radius:6px 0 0 6px;
+  background:var(--slate-200); overflow:hidden;
+  box-shadow:var(--shadow-md);
+  display:flex; flex-direction:column; justify-content:flex-end;
+}
+.side-progress-fill{
+  width:100%; height:0%; background:var(--primary);
+  border-radius:6px 0 0 6px;
+  transition:height .4s var(--ease-out), background-color .25s;
+}
+.side-progress-dot{
+  position:absolute; left:-15px; top:50%; translate:0 -50%;
+  width:30px; height:30px; border-radius:50%;
+  background:var(--primary); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:12px;
+  box-shadow:var(--shadow-md); border:2px solid var(--surface);
+  transition:background-color .25s;
+}
+.side-progress.state-success .side-progress-fill{ background:var(--success); }
+.side-progress.state-success .side-progress-dot{ background:var(--success); }
+.side-progress.state-error .side-progress-fill{ background:var(--danger); }
+.side-progress.state-error .side-progress-dot{ background:var(--danger); }
+@media (max-width:680px){
+  .side-progress-track{ height:88px; }
+  .side-progress-dot{ width:26px; height:26px; left:-13px; font-size:11px; }
+}
 
 .deploy-timer{
   font-family:var(--font-mono); font-size:12.5px; color:var(--slate-500);
@@ -805,7 +874,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 #pageLoader.loaded{ opacity:0; visibility:hidden; pointer-events:none; }
 .loader-mark{
   width:88px; height:88px; padding:14px; border-radius:20px;
-  background:linear-gradient(155deg, var(--primary), var(--primary-hover));
+  background:var(--primary);
   box-shadow:var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.25);
   display:flex; align-items:center; justify-content:center;
   animation:loaderPulse 1.4s ease-in-out infinite;
@@ -819,6 +888,53 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   width:26px; height:26px; border-radius:50%;
   border:3px solid var(--slate-200); border-top-color:var(--primary);
   animation:spin .9s linear infinite;
+}
+
+/* ============================================================
+   Custom themed context menu
+   ============================================================ */
+.context-menu{
+  position:fixed; z-index:400; min-width:200px;
+  background:var(--surface); border:1px solid var(--slate-200);
+  border-radius:14px; box-shadow:var(--shadow-lg);
+  padding:6px; opacity:0; visibility:hidden; pointer-events:none;
+  transform:scale(.96); transform-origin:top left;
+  transition:opacity .14s var(--ease-out), transform .14s var(--ease-out), visibility .14s;
+}
+.context-menu.show{ opacity:1; visibility:visible; pointer-events:auto; transform:scale(1); }
+.ctx-item{
+  width:100%; display:flex; align-items:center; gap:10px;
+  background:none; border:none; text-align:left;
+  padding:9px 12px; border-radius:9px; font-size:13.5px; font-weight:600;
+  color:var(--ink-900); font-family:inherit;
+}
+.ctx-item i{ width:15px; color:var(--primary); font-size:12.5px; flex:none; }
+.ctx-item:hover, .ctx-item:focus-visible{ background:var(--slate-100); outline:none; }
+.ctx-sep{ height:1px; background:var(--slate-100); margin:6px 4px; }
+
+/* ============================================================
+   FAQ accordion
+   ============================================================ */
+.faq-item{ padding:14px 0; border-bottom:1px solid var(--slate-100); }
+.faq-item-last{ border-bottom:none; }
+.faq-item summary{
+  cursor:pointer; font-weight:600; font-size:14.5px;
+  display:flex; align-items:center; gap:10px;
+  list-style:none; -webkit-tap-highlight-color:transparent;
+}
+.faq-item summary::-webkit-details-marker{ display:none; }
+.faq-item summary::marker{ content:""; }
+.faq-summary-icon{ color:var(--slate-400); width:16px; flex:none; }
+.faq-summary-text{ flex:1; }
+.faq-chevron{
+  color:var(--slate-400); font-size:12px; flex:none;
+  transition:transform .25s var(--ease-out), color .2s;
+}
+.faq-item[open] .faq-chevron{ transform:rotate(180deg); color:var(--primary); }
+.faq-item summary:hover .faq-chevron{ color:var(--primary); }
+.faq-item p{
+  color:var(--slate-500); font-size:13.5px; margin:10px 0 0 26px;
+  animation:fadeUp .25s var(--ease-out) both;
 }
 
 /* Utility */
@@ -838,7 +954,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .container{ max-width:820px; }
   .site-header .container{ max-width:1180px; }
   .site-footer .container{ max-width:1180px; }
-  .hero h1{ font-size:clamp(38px, 3.6vw, 54px); }
+  .hero h1{ font-size:clamp(34px, 3vw, 48px); }
 }
 
 /* Tablet */
@@ -882,7 +998,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Very small phones */
 @media (max-width: 340px){
   .container{ padding:0 14px; }
-  .hero h1{ font-size:clamp(26px, 8vw, 34px); }
+  .hero h1{ font-size:clamp(23px, 7vw, 30px); }
+}
+
+@media (max-width: 400px){
+  .domain-prefix{ font-size:11.5px; }
+  .deploy-pill{ padding:10px 12px 10px 10px; gap:9px; }
+  .deploy-pill-text{ font-size:12px; }
+  .context-menu{ min-width:180px; }
 }
 
 /* Touch devices - enlarge tap targets, drop hover-only affordances */
@@ -917,7 +1040,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <span class="brand-mark">
         <img src="https://i.ibb.co/NnnPscR9/logo-redesign.png" alt="HoppingSite logo">
       </span>
-      <span class="brand-name">HoppingSite</span>
+      <span class="brand-name">Hopping<span class="brand-name-accent">Site</span></span>
     </a>
     <nav class="header-nav" id="headerNav" aria-label="Primary">
       <a href="#upload-card"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> Publish</a>
@@ -942,8 +1065,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <div class="hero-logo-wrap">
         <img class="hero-logo" src="https://i.ibb.co/NnnPscR9/logo-redesign.png" alt="HoppingSite logo">
       </div>
-      <h1>Publish your <span class="grad">index.html</span><br>in under a minute</h1>
-      <p>One single <code style="font-family:var(--font-mono); background:var(--slate-100); color:var(--primary-hover); padding:2px 7px; border-radius:6px; font-size:.92em;">index.html</code> file - with your CSS and JavaScript inside it - is all it takes. Drop it in, pick a subdomain, and HoppingSite deploys it straight to GitHub Pages, free and open source.</p>
+      <h1>Publish your <span class="grad">Single File Website</span> in one click</h1>
+      <p class="hero-lede">One single <code style="font-family:var(--font-mono); background:var(--slate-100); color:var(--primary-hover); padding:2px 7px; border-radius:6px; font-size:.92em;">index.html</code> file, with your CSS and JavaScript inside it, is all it takes. Drop it in, pick a subdomain, and HoppingSite deploys it straight to GitHub Pages, free and open source.</p>
     </div>
   </section>
 
@@ -962,7 +1085,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         </div>
 
         <div class="token-input-row" id="tokenRow">
-          <input type="password" id="tokenInput" placeholder="Paste your GitHub Personal Access Token (classic or fine-grained)"
+          <input type="password" id="tokenInput" placeholder="Paste your Fine-grained Personal Access Token (classic tokens not supported)"
                  autocomplete="off" autocapitalize="off" spellcheck="false"
                  aria-describedby="tokenHelper" aria-label="GitHub Personal Access Token">
           <button type="button" class="token-visibility-btn" id="tokenVisibilityBtn" aria-label="Show token">
@@ -984,7 +1107,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <div class="token-example-row">
           <i class="fa-solid fa-code" aria-hidden="true" style="color:var(--slate-400);"></i>
-          <code id="tokenExampleText">github_pat_xxxxxxxxxxxxxxxxxxxx</code>
+          <code id="tokenExampleText">github_pat_XXXXXXXXXXXXXXXXXXXX</code>
           <button type="button" class="copy-btn" id="copyExampleTokenBtn" aria-label="Copy example token format">
             <i class="fa-solid fa-copy" aria-hidden="true"></i>
           </button>
@@ -992,7 +1115,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <p id="tokenHelper" class="token-permissions-note">
           <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-          <span>Create a <b>Fine-grained Personal Access Token</b> with <b>Repository access: All repositories</b>, and <b>Administration</b> + <b>Contents</b> + <b>Pages</b> set to Read &amp; Write - GitHub's API supports enabling Pages directly, so HoppingSite publishes and turns on Pages in one step. If a token is missing Pages access, HoppingSite falls back to a one-click manual step instead. Your token is saved with <code>localStorage</code> in this browser only - never written into this page, committed to Git, or sent anywhere except directly to GitHub's API.</span>
+          <span>Use a <b>Fine-grained token</b> - Repository access: <b>All repositories</b>, with <b>Administration + Contents + Pages</b> set to Read &amp; Write. Saved in <code>localStorage</code> on this device only - never in this page, Git, or sent anywhere but GitHub's API.</span>
         </p>
       </section>
 
@@ -1025,7 +1148,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <div class="card-head">
           <div class="card-icon"><i class="fa-solid fa-globe" aria-hidden="true"></i></div>
           <div class="card-title">
-            <h2>Choose your address</h2>
+            <h2>Choose your subdomain</h2>
             <span>Lowercase letters, numbers and hyphens only</span>
           </div>
           <span class="step-num">02</span>
@@ -1033,20 +1156,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
         <div class="domain-input-row" id="domainRow">
           <span class="domain-status-icon" id="domainStatusIcon" aria-hidden="true"></span>
-          <input type="text" id="domainInput" placeholder="examplesite" maxlength="40"
+          <span class="domain-prefix" id="domainPrefix">hoppingsite.github.io/</span>
+          <input type="text" id="domainInput" placeholder="your-site-name" maxlength="40"
                  autocomplete="off" autocapitalize="off" spellcheck="false"
-                 aria-describedby="domainHelper" aria-label="Desired subdomain name">
-          <span class="domain-suffix" id="domainSuffix">.github.io</span>
+                 aria-describedby="domainHelper" aria-label="Desired subdomain name, added after hoppingsite.github.io/">
         </div>
         <div class="helper-row">
           <span id="domainCharCount">0 / 40</span>
-          <span>a–z, 0–9, hyphen</span>
+          <span>a-z, 0-9, hyphen</span>
         </div>
 
         <div class="live-preview">
           <i class="fa-solid fa-globe" aria-hidden="true"></i>
           <span class="live-preview-url" id="livePreviewUrl">
-            <span class="muted" id="livePreviewOwner">yourname.github.io/</span><span class="name" id="livePreviewName">yoursite</span>
+            <span class="muted" id="livePreviewOwner">hoppingsite.github.io/</span><span class="name" id="livePreviewName">yoursite</span>
           </span>
         </div>
 
@@ -1153,7 +1276,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
       <div class="card" style="padding:20px;text-align:center;">
         <div class="card-icon" style="margin:0 auto 12px;background:var(--yellow-500);box-shadow:0 4px 12px rgba(255,193,7,.3);"><i class="fa-solid fa-signature" aria-hidden="true"></i></div>
         <h3 style="font-size:14.5px;margin:0 0 6px;">Name it</h3>
-        <p style="font-size:13px;color:var(--slate-500);margin:0;">Pick a free name for your github.io address.</p>
+        <p style="font-size:13px;color:var(--slate-500);margin:0;">Pick a free subdomain name.</p>
       </div>
       <div class="card" style="padding:20px;text-align:center;">
         <div class="card-icon" style="margin:0 auto 12px;"><i class="fa-solid fa-rocket" aria-hidden="true"></i></div>
@@ -1167,17 +1290,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   <section id="faq" class="container" style="padding:56px 0 20px;max-width:680px;">
     <h2 style="font-family:var(--font-display);font-size:22px;text-align:center;margin:0 0 22px;display:flex;align-items:center;justify-content:center;gap:10px;"><i class="fa-solid fa-circle-question" style="color:var(--primary);font-size:19px;" aria-hidden="true"></i>Frequently asked</h2>
     <div class="card" style="padding:8px 20px;">
-      <details style="padding:14px 0;border-bottom:1px solid var(--slate-100);">
-        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:10px;"><i class="fa-solid fa-tag" style="color:var(--slate-400);width:16px;" aria-hidden="true"></i>Is HoppingSite really free?</summary>
-        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0 26px;">Yes. Publishing runs entirely on free GitHub Pages hosting, with no hidden fees.</p>
+      <details class="faq-item">
+        <summary><i class="fa-solid fa-tag faq-summary-icon" aria-hidden="true"></i><span class="faq-summary-text">Is HoppingSite really free?</span><i class="fa-solid fa-chevron-down faq-chevron" aria-hidden="true"></i></summary>
+        <p>Yes. Publishing runs entirely on free GitHub Pages hosting, with no hidden fees.</p>
       </details>
-      <details style="padding:14px 0;border-bottom:1px solid var(--slate-100);">
-        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:10px;"><i class="fa-solid fa-file" style="color:var(--slate-400);width:16px;" aria-hidden="true"></i>Can I upload more than one file?</summary>
-        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0 26px;">Not yet - HoppingSite accepts one self-contained index.html file per site.</p>
+      <details class="faq-item">
+        <summary><i class="fa-solid fa-file faq-summary-icon" aria-hidden="true"></i><span class="faq-summary-text">Can I upload more than one file?</span><i class="fa-solid fa-chevron-down faq-chevron" aria-hidden="true"></i></summary>
+        <p>Not yet - HoppingSite accepts one self-contained index.html file per site.</p>
       </details>
-      <details style="padding:14px 0;">
-        <summary style="cursor:pointer;font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:10px;"><i class="fa-solid fa-hourglass-half" style="color:var(--slate-400);width:16px;" aria-hidden="true"></i>What happens when a site expires?</summary>
-        <p style="color:var(--slate-500);font-size:13.5px;margin:10px 0 0 26px;">Its address is released for anyone to claim - choose "Never" to keep it permanently.</p>
+      <details class="faq-item faq-item-last">
+        <summary><i class="fa-solid fa-hourglass-half faq-summary-icon" aria-hidden="true"></i><span class="faq-summary-text">What happens when a site expires?</span><i class="fa-solid fa-chevron-down faq-chevron" aria-hidden="true"></i></summary>
+        <p>Its address is released for anyone to claim - choose "Never" to keep it permanently.</p>
       </details>
     </div>
   </section>
@@ -1192,7 +1315,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         <span class="brand-mark">
           <img src="https://i.ibb.co/NnnPscR9/logo-redesign.png" alt="HoppingSite logo">
         </span>
-        <span>HoppingSite</span>
+        <span>Hopping<span class="brand-name-accent">Site</span></span>
       </div>
       <div class="footer-meta">
         <i class="fa-solid fa-code-branch" aria-hidden="true"></i>
@@ -1235,7 +1358,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
       <div class="url-box">
         <i class="fa-solid fa-link" aria-hidden="true"></i>
-        <a id="successUrl" href="#" target="_blank" rel="noopener">https://yourname.github.io/yoursite</a>
+        <a id="successUrl" href="#" target="_blank" rel="noopener">https://hoppingsite.github.io/yoursite</a>
         <button type="button" class="copy-btn" id="copyLinkBtn" aria-label="Copy link"><i class="fa-solid fa-copy" aria-hidden="true"></i></button>
       </div>
 
@@ -1272,6 +1395,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   </button>
 </div>
 
+<!-- Slim side progress indicator - stays visible even after the deploy
+     panel is closed (not just minimized), so an in-flight publish is
+     never silently invisible. Click restores the full panel. -->
+<div class="side-progress" id="sideProgress" role="button" tabindex="0" aria-label="Publish in progress - click to view">
+  <div class="side-progress-track">
+    <div class="side-progress-fill" id="sideProgressFill"></div>
+  </div>
+  <div class="side-progress-dot" id="sideProgressDot"><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i></div>
+</div>
+
 <!-- ============ AVAILABILITY WARNING MODAL ============ -->
 <div class="modal-backdrop" id="unavailableModal" role="dialog" aria-modal="true" aria-labelledby="unavailableTitle">
   <div class="modal-box">
@@ -1281,6 +1414,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     <div class="suggestion-chips" id="suggestionChips"></div>
     <button type="button" class="btn btn-secondary" style="width:100%;" id="unavailableCloseBtn">Choose another name</button>
   </div>
+</div>
+
+<!-- Custom themed context menu -->
+<div class="context-menu" id="customContextMenu" role="menu" aria-hidden="true">
+  <button type="button" class="ctx-item" data-action="back" role="menuitem"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back</button>
+  <button type="button" class="ctx-item" data-action="reload" role="menuitem"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Reload page</button>
+  <div class="ctx-sep"></div>
+  <button type="button" class="ctx-item" data-action="copy" role="menuitem"><i class="fa-solid fa-copy" aria-hidden="true"></i> Copy</button>
+  <button type="button" class="ctx-item" data-action="copy-link" role="menuitem"><i class="fa-solid fa-link" aria-hidden="true"></i> Copy link</button>
+  <div class="ctx-sep"></div>
+  <button type="button" class="ctx-item" data-action="top" role="menuitem"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Scroll to top</button>
+  <button type="button" class="ctx-item" data-action="github" role="menuitem"><i class="fa-brands fa-github" aria-hidden="true"></i> View on GitHub</button>
 </div>
 
 <!-- Snackbar host -->
@@ -2331,7 +2476,7 @@ function sanitizeDomainInput(raw){
 
 function updateLivePreview(name){
   livePreviewName.textContent = name || "yoursite";
-  livePreviewOwner.textContent = (state.lastOwnerLogin || "yourname") + ".github.io/";
+  livePreviewOwner.textContent = (state.lastOwnerLogin || "hoppingsite") + ".github.io/";
 }
 
 const checkAvailability = debounce(async function(name){
@@ -2569,7 +2714,7 @@ function updateSummary(){
 
   const domainEl = $("#sumDomain");
   if(state.domainName && state.domainStatus === "available"){
-    const ownerLabel = state.lastOwnerLogin || "yourname";
+    const ownerLabel = state.lastOwnerLogin || "hoppingsite";
     domainEl.textContent = `${ownerLabel}.github.io/${state.domainName}`;
     domainEl.classList.remove("pending");
   } else {
@@ -2638,6 +2783,9 @@ const deployPill = $("#deployPill");
 const deployPillRing = $("#deployPillRing");
 const deployPillPct = $("#deployPillPct");
 const deployPillCloseBtn = $("#deployPillCloseBtn");
+const sideProgress = $("#sideProgress");
+const sideProgressFill = $("#sideProgressFill");
+const sideProgressDot = $("#sideProgressDot");
 
 let deployStartTime = null;
 // Gently animates the progress bar toward (but never past) a stage's target
@@ -2674,6 +2822,30 @@ function setProgress(pct){
   lastKnownPct = pct;
   deployPillRing.style.setProperty("--pill-pct", Math.floor(pct));
   updatePillText();
+  if(sideProgressFill) sideProgressFill.style.height = pct.toFixed(1) + "%";
+}
+
+/* Shows/hides/colors the slim side progress bar. This is deliberately
+   independent of the pill and the full panel - it's the one indicator
+   that stays up even after the person clicks "close", so an in-flight
+   publish is never completely invisible. */
+function setSideProgressState(mode){
+  if(!sideProgress) return;
+  sideProgress.classList.remove("state-success","state-error");
+  if(mode === "hide"){
+    sideProgress.classList.remove("show");
+    return;
+  }
+  sideProgress.classList.add("show");
+  if(mode === "success"){
+    sideProgress.classList.add("state-success");
+    sideProgressDot.innerHTML = `<i class="fa-solid fa-check" aria-hidden="true"></i>`;
+  } else if(mode === "error"){
+    sideProgress.classList.add("state-error");
+    sideProgressDot.innerHTML = `<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>`;
+  } else {
+    sideProgressDot.innerHTML = `<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>`;
+  }
 }
 
 function updatePillText(){
@@ -2767,11 +2939,13 @@ deployMinimizeBtn.addEventListener("click", ()=>{
   deployOverlay.classList.add("minimized");
   deployPill.classList.add("show");
   updatePillText();
+  setSideProgressState("hide"); // pill already shows progress; avoid showing both at once
 });
 
 function restoreFromPill(){
   deployOverlay.classList.remove("minimized");
   deployPill.classList.remove("show");
+  setSideProgressState("hide");
 }
 deployPill.addEventListener("click", (e)=>{
   if(e.target.closest("#deployPillCloseBtn")) return;
@@ -2787,9 +2961,14 @@ function dismissDeployOverlay(){
   deployPill.classList.remove("show");
   // The panel is hidden, not the request - if a publish is still running,
   // leave the form locked so a second submit can't race the first, and let
-  // the eventual snackbar report the real outcome.
-  if(!isDeployInFlight()){
+  // the eventual snackbar report the real outcome. The slim side bar takes
+  // over as the one visible sign that something is still in flight, so
+  // closing never makes an active publish disappear completely.
+  if(isDeployInFlight()){
+    setSideProgressState("progress");
+  } else {
     stopElapsedTimer();
+    setSideProgressState("hide");
   }
 }
 
@@ -2797,6 +2976,22 @@ deployCloseBtn.addEventListener("click", dismissDeployOverlay);
 deployPillCloseBtn.addEventListener("click", (e)=>{
   e.stopPropagation();
   dismissDeployOverlay();
+});
+
+sideProgress.addEventListener("click", ()=>{
+  deployOverlay.classList.add("show");
+  deployOverlay.classList.remove("minimized");
+  deployPill.classList.remove("show");
+  setSideProgressState("hide");
+});
+sideProgress.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter" || e.key === " "){
+    e.preventDefault();
+    deployOverlay.classList.add("show");
+    deployOverlay.classList.remove("minimized");
+    deployPill.classList.remove("show");
+    setSideProgressState("hide");
+  }
 });
 
 /**
@@ -2890,6 +3085,14 @@ async function runDeployment(){
     deployPill.classList.remove("show");
     unlockControls();
 
+    // If the person had closed/minimized the panel, the side bar was their
+    // only visible sign of progress - flash it red so the failure isn't
+    // silent, then let it fade since the snackbar carries the real message.
+    if(sideProgress.classList.contains("show")){
+      setSideProgressState("error");
+      setTimeout(()=> setSideProgressState("hide"), 2600);
+    }
+
     if(result.reason === "name_taken"){
       showSnackbar(`"${name}" is already taken on GitHub.`, "err");
       state.domainStatus = "unavailable";
@@ -2946,6 +3149,11 @@ function showSuccess(result){
   deployingState.classList.add("hidden");
   successState.classList.remove("hidden");
 
+  if(sideProgress.classList.contains("show")){
+    setSideProgressState("success");
+    setTimeout(()=> setSideProgressState("hide"), 2200);
+  }
+
   const url = result.url;
   const successUrl = $("#successUrl");
   successUrl.href = url;
@@ -2978,6 +3186,7 @@ deployForm.addEventListener("submit", (e)=>{
   Array.from(deployForm.elements).forEach(elm => elm.disabled = true);
 
   deployOverlay.classList.add("show");
+  setSideProgressState("hide");
   runDeployment();
 });
 
@@ -3067,6 +3276,82 @@ headerNav.querySelectorAll("a").forEach(a=>{
     navToggle.innerHTML = `<i class="fa-solid fa-bars" aria-hidden="true"></i>`;
   });
 });
+
+/* ============================================================
+   Custom themed context menu
+   ============================================================ */
+(function(){
+  const menu = $("#customContextMenu");
+  if(!menu) return;
+
+  function closeMenu(){
+    menu.classList.remove("show");
+    menu.setAttribute("aria-hidden","true");
+  }
+
+  function openMenuAt(x, y){
+    menu.classList.add("show");
+    menu.setAttribute("aria-hidden","false");
+    // Measure after showing so we can clamp to viewport
+    const rect = menu.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let left = x, top = y;
+    if(left + rect.width > vw - 8) left = Math.max(8, vw - rect.width - 8);
+    if(top + rect.height > vh - 8) top = Math.max(8, vh - rect.height - 8);
+    menu.style.left = left + "px";
+    menu.style.top = top + "px";
+  }
+
+  document.addEventListener("contextmenu", (e)=>{
+    // Let native menu through for inputs/textareas so people can still use
+    // browser-level paste/spellcheck tools while typing tokens or names.
+    const tag = (e.target.tagName || "").toLowerCase();
+    if(tag === "input" || tag === "textarea") return;
+    e.preventDefault();
+    openMenuAt(e.clientX, e.clientY);
+  });
+
+  document.addEventListener("click", (e)=>{
+    if(!menu.contains(e.target)) closeMenu();
+  });
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape") closeMenu();
+  });
+  window.addEventListener("scroll", closeMenu, { passive:true });
+  window.addEventListener("resize", closeMenu);
+
+  menu.addEventListener("click", async (e)=>{
+    const btn = e.target.closest(".ctx-item");
+    if(!btn) return;
+    const action = btn.dataset.action;
+    closeMenu();
+    switch(action){
+      case "back":
+        history.back();
+        break;
+      case "reload":
+        location.reload();
+        break;
+      case "copy": {
+        const sel = window.getSelection().toString();
+        const text = sel && sel.trim() ? sel : location.href;
+        try{ await navigator.clipboard.writeText(text); showSnackbar(sel && sel.trim() ? "Copied selected text." : "Copied page link.", "ok", 2200); }
+        catch(err){ showSnackbar("Couldn't copy - try again.", "err", 2200); }
+        break;
+      }
+      case "copy-link":
+        try{ await navigator.clipboard.writeText(location.href); showSnackbar("Link copied to clipboard.", "ok", 2200); }
+        catch(err){ showSnackbar("Couldn't copy - try again.", "err", 2200); }
+        break;
+      case "top":
+        window.scrollTo({ top:0, behavior:"smooth" });
+        break;
+      case "github":
+        window.open("https://github.com/hoppingsite", "_blank", "noopener");
+        break;
+    }
+  });
+})();
 
 /* ============================================================
    Init
