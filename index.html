@@ -139,21 +139,39 @@ html{ scrollbar-width:thin; scrollbar-color:var(--primary) var(--slate-100); }
 ::selection{ background:var(--primary); color:#fff; }
 ::-moz-selection{ background:var(--primary); color:#fff; }
 
-/* Custom themed cursor (desktop / mouse only - touch devices keep native)
-   Shape matches Font Awesome's solid "location-arrow" glyph (fa-solid fa-location-arrow),
-   verified against the official Font Awesome Free SVG source.
-   Black by default; switches to theme red over interactive elements and while
-   the mouse button is held down. */
-@media (hover:hover) and (pointer:fine){
-  html{
-    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="black" transform="translate(448,0) scale(-1,1)" d="M429.6 92.1c4.9-11.9 2.1-25.6-7-34.7s-22.8-11.9-34.7-7l-352 144c-14.2 5.8-22.2 20.8-19.3 35.8s16.1 25.8 31.4 25.8H224V432c0 15.3 10.8 28.4 25.8 31.4s30-5.1 35.8-19.3l144-352z"/></svg>') 22 2, auto;
-  }
-  a, button, .btn, summary, input, label.dropzone, .nav-toggle, [role="button"], [tabindex]:not([tabindex="-1"]), select, .expiry-chip, .copy-btn, .file-chip-remove, .deploy-pill{
-    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23F44336" transform="translate(448,0) scale(-1,1)" d="M429.6 92.1c4.9-11.9 2.1-25.6-7-34.7s-22.8-11.9-34.7-7l-352 144c-14.2 5.8-22.2 20.8-19.3 35.8s16.1 25.8 31.4 25.8H224V432c0 15.3 10.8 28.4 25.8 31.4s30-5.1 35.8-19.3l144-352z"/></svg>') 22 2, pointer;
-  }
-  html:active, body:active{
-    cursor:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 448 512"><path fill="%23F44336" transform="translate(448,0) scale(-1,1)" d="M429.6 92.1c4.9-11.9 2.1-25.6-7-34.7s-22.8-11.9-34.7-7l-352 144c-14.2 5.8-22.2 20.8-19.3 35.8s16.1 25.8 31.4 25.8H224V432c0 15.3 10.8 28.4 25.8 31.4s30-5.1 35.8-19.3l144-352z"/></svg>') 22 2, pointer;
-  }
+/* ============================================================
+   Cursor
+   ============================================================
+   Native cursors everywhere (no glitch-prone custom SVG url() cursor,
+   no lag, correct OS-level hover/active states out of the box).
+   Desktop/mouse pointers additionally get a small Font Awesome
+   "fa-regular fa-hand-pointer" glyph that follows the real cursor over
+   interactive elements - built as a JS-driven follower element (see
+   .fa-cursor-follower below + the script near the end of the page),
+   since CSS cursor: cannot reference a webfont icon directly. Touch
+   devices are completely unaffected - the follower only ever attaches
+   on (hover:hover) and (pointer:fine). */
+a, button, .btn, summary, input, label.dropzone, .nav-toggle, [role="button"], [tabindex]:not([tabindex="-1"]), select, .expiry-chip, .copy-btn, .file-chip-remove, .deploy-pill{
+  cursor:pointer;
+}
+.fa-cursor-follower{
+  position:fixed; top:0; left:0; z-index:9999;
+  width:22px; height:22px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; color:var(--primary);
+  background:#fff; box-shadow:0 2px 8px rgba(31,41,55,.18), 0 0 0 1.5px rgba(244,67,54,.18);
+  pointer-events:none; opacity:0;
+  transform:translate(-50%,-50%) scale(.7);
+  transition:opacity .15s var(--ease-out), transform .15s var(--ease-spring), color .15s;
+  will-change:transform, opacity;
+}
+.fa-cursor-follower.is-visible{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+.fa-cursor-follower.is-active{ transform:translate(-50%,-50%) scale(.82); color:var(--primary-hover); }
+@media (hover:none), (pointer:coarse){
+  .fa-cursor-follower{ display:none !important; }
+}
+@media (prefers-reduced-motion: reduce){
+  .fa-cursor-follower{ transition:none; }
 }
 
 /* Fluid type baseline */
@@ -447,12 +465,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   display:flex; align-items:stretch;
   border:1.5px solid var(--slate-200); border-radius:var(--radius-md);
   overflow:hidden; background:var(--surface-2);
-  box-shadow:none;
+  /* One shadow around the WHOLE container (border+prefix+input+suffix+icon)
+     so it reads as a single elevated component, not just a lit-up text
+     field floating inside a flat box. */
+  box-shadow:var(--shadow-sm);
   transition:border-color .2s var(--ease-out), box-shadow .2s var(--ease-out), background .2s var(--ease-out);
 }
-.domain-input-row:focus-within{ border-color:var(--primary); background:var(--surface); }
-.domain-input-row.is-invalid{ border-color:var(--danger); }
-.domain-input-row.is-valid{ border-color:var(--success); }
+.domain-input-row:focus-within{
+  border-color:var(--primary); background:var(--surface);
+  box-shadow:var(--shadow-md), var(--shadow-focus);
+}
+.domain-input-row.is-invalid{ border-color:var(--danger); box-shadow:var(--shadow-sm); }
+.domain-input-row.is-valid{ border-color:var(--success); box-shadow:var(--shadow-sm); }
 .domain-input-row input{
   flex:1; min-width:0; border:none; background:transparent; outline:none;
   padding:14px 16px 14px 0; font-family:var(--font-mono); font-size:13.5px; font-weight:600; color:var(--ink-900);
@@ -467,6 +491,69 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .domain-status-icon .fa-spinner{ color:var(--slate-400); }
 .domain-status-icon .fa-circle-check{ color:var(--success); }
 .domain-status-icon .fa-circle-xmark{ color:var(--danger); }
+
+/* ============================================================
+   Shared field block (label + control + hint) - used for Website
+   Type, Editable, and the Publish Info modal's fields.
+   ============================================================ */
+.field-block{ margin-top:18px; }
+.field-label{
+  display:block; font-size:13.5px; font-weight:700; color:var(--ink-900);
+  margin-bottom:8px; letter-spacing:-.005em;
+}
+.required-asterisk{ color:var(--primary); }
+.field-hint{ font-size:12px; color:var(--slate-400); margin:7px 2px 0; line-height:1.5; }
+
+.select-wrap{ position:relative; }
+.select-wrap select{
+  appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  width:100%; border:1.5px solid var(--slate-200); border-radius:var(--radius-md);
+  background:var(--surface-2); box-shadow:var(--shadow-sm);
+  padding:13px 40px 13px 16px; font-family:var(--font-body); font-size:14px; font-weight:600;
+  color:var(--ink-900); transition:border-color .2s var(--ease-out), box-shadow .2s var(--ease-out), background .2s var(--ease-out);
+}
+.select-wrap select:invalid{ color:var(--slate-400); font-weight:500; }
+.select-wrap select:focus{ outline:none; border-color:var(--primary); background:var(--surface); box-shadow:var(--shadow-md), var(--shadow-focus); }
+.select-wrap select.is-invalid{ border-color:var(--danger); }
+.select-wrap select.is-valid{ border-color:var(--success); }
+.select-chevron{
+  position:absolute; right:16px; top:50%; transform:translateY(-50%);
+  color:var(--slate-400); font-size:12px; pointer-events:none;
+}
+
+/* Checkbox row */
+.checkbox-row{
+  display:flex; align-items:flex-start; gap:12px; cursor:pointer; user-select:none;
+  padding:14px 16px; border:1.5px solid var(--slate-200); border-radius:var(--radius-md);
+  background:var(--surface-2); transition:border-color .18s var(--ease-out), background .18s var(--ease-out);
+}
+.checkbox-row:hover{ border-color:var(--blue-400); background:#FFF3F1; }
+.checkbox-row input[type="checkbox"]{
+  position:absolute; opacity:0; width:1px; height:1px; pointer-events:none;
+}
+.checkbox-box{
+  flex:none; width:22px; height:22px; margin-top:1px; border-radius:7px;
+  border:1.5px solid var(--slate-200); background:var(--surface);
+  display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff;
+  transition:all .18s var(--ease-spring);
+}
+.checkbox-row input:checked ~ .checkbox-box{
+  background:var(--blue-600); border-color:var(--blue-600); transform:scale(1.05);
+}
+.checkbox-row input:focus-visible ~ .checkbox-box{ box-shadow:var(--shadow-focus); }
+.checkbox-label{ display:flex; flex-direction:column; gap:3px; }
+.checkbox-title{ font-weight:700; font-size:14px; color:var(--ink-900); }
+.checkbox-sub{ font-size:12.5px; color:var(--slate-500); line-height:1.5; }
+
+.editable-note{
+  display:flex; align-items:flex-start; gap:8px; margin-top:12px;
+  font-size:12.5px; color:var(--slate-500); background:var(--slate-100);
+  padding:10px 12px; border-radius:10px; line-height:1.5;
+  transition:opacity .2s;
+}
+.editable-note .fa-solid{ margin-top:2px; color:var(--blue-400); flex:none; }
+.editable-note.is-on{ background:var(--success-bg); color:#067647; }
+.editable-note.is-on .fa-solid{ color:var(--success); }
 
 .live-preview{
   margin-top:14px; display:flex; align-items:center; gap:10px;
@@ -926,6 +1013,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .suggestion-chip:hover{ border-color:var(--blue-400); background:#FFF3F1; color:var(--blue-600); }
 
+/* Publish Info / Update Password modal form fields */
+.modal-box-form{ max-width:440px; max-height:88vh; overflow-y:auto; }
+.modal-text-input{
+  width:100%; border:1.5px solid var(--slate-200); border-radius:var(--radius-md);
+  background:var(--surface-2); box-shadow:var(--shadow-sm);
+  padding:12px 14px; font-family:var(--font-body); font-size:14px; font-weight:500;
+  color:var(--ink-900); outline:none;
+  transition:border-color .2s var(--ease-out), box-shadow .2s var(--ease-out), background .2s var(--ease-out);
+}
+.modal-text-input::placeholder{ color:var(--slate-400); font-weight:400; }
+.modal-text-input:focus{ border-color:var(--primary); background:var(--surface); box-shadow:var(--shadow-md), var(--shadow-focus); }
+.modal-text-input.is-invalid{ border-color:var(--danger); }
+.modal-text-input.is-valid{ border-color:var(--success); }
+.modal-textarea{ resize:vertical; min-height:72px; font-family:var(--font-body); line-height:1.5; }
+.optional-tag{
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  color:var(--slate-400); background:var(--slate-100); padding:2px 8px; border-radius:var(--radius-pill);
+  margin-left:4px; vertical-align:middle;
+}
+
 /* iOS install steps list */
 .install-steps{ list-style:none; margin:0 0 20px; padding:0; display:flex; flex-direction:column; gap:12px; text-align:left; }
 .install-steps li{ display:flex; align-items:flex-start; gap:12px; font-size:13.5px; color:var(--ink-900); line-height:1.5; }
@@ -1263,7 +1370,79 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 })();
 </script>
 
+<script>
+/* ============================================================
+   Cursor follower driver - standalone, independent of the main app
+   script further down (mirrors the loader/PWA scripts' pattern so
+   pointer behavior never depends on anything else on the page
+   succeeding first).
+   ============================================================
+   Desktop/mouse only: gated on the same (hover:hover) and
+   (pointer:fine) media condition the CSS uses, checked via
+   matchMedia so touch devices never attach any listeners at all.
+   Follows the real OS cursor 1:1 (no lag, no offset math) and
+   swaps to a "pressed" state on mousedown/mouseup so clicking still
+   reads clearly, with no glitches from stale hover state on
+   scroll/drag (cleared via pointercancel/mouseleave-from-window). */
+(function(){
+  "use strict";
+  var mq = window.matchMedia("(hover:hover) and (pointer:fine)");
+  if(!mq.matches) return; // touch/coarse pointer devices: nothing to do
+
+  var follower = document.getElementById("faCursorFollower");
+  if(!follower) return;
+
+  var interactiveSelector = 'a, button, .btn, summary, input, label.dropzone, .nav-toggle, [role="button"], [tabindex]:not([tabindex="-1"]), select, .expiry-chip, .copy-btn, .file-chip-remove, .deploy-pill';
+  var visible = false;
+
+  function show(){
+    if(visible) return;
+    visible = true;
+    follower.classList.add("is-visible");
+  }
+  function hide(){
+    if(!visible) return;
+    visible = false;
+    follower.classList.remove("is-visible", "is-active");
+  }
+
+  document.addEventListener("mousemove", function(e){
+    follower.style.transform = "translate(" + e.clientX + "px," + e.clientY + "px)";
+    // transform above intentionally overrides the CSS translate(-50%,-50%)
+    // base value, so re-apply centering here in the same property:
+    follower.style.transform = "translate(" + e.clientX + "px," + e.clientY + "px) translate(-50%,-50%)" + (follower.classList.contains("is-active") ? " scale(.82)" : "");
+    var overInteractive = !!(e.target && e.target.closest && e.target.closest(interactiveSelector));
+    if(overInteractive) show(); else hide();
+  }, { passive:true });
+
+  document.addEventListener("mousedown", function(){ follower.classList.add("is-active"); }, { passive:true });
+  ["mouseup","dragend"].forEach(function(evt){
+    document.addEventListener(evt, function(){ follower.classList.remove("is-active"); }, { passive:true });
+  });
+
+  // Prevents a "stuck" follower if the mouse leaves the browser window
+  // entirely (e.g. moves to another app/monitor) while over an element.
+  document.addEventListener("mouseleave", function(e){
+    if(!e.relatedTarget && !e.toElement) hide();
+  });
+
+  // If the underlying pointer type changes mid-session (e.g. a hybrid
+  // laptop/tablet), stop driving the follower rather than showing a
+  // stale dot with no real mouse behind it.
+  mq.addEventListener && mq.addEventListener("change", function(e){
+    if(!e.matches) hide();
+  });
+})();
+</script>
+
 <a href="#main" class="skip-link">Skip to content</a>
+
+<!-- Desktop-only pointer follower - shows a real fa-regular fa-hand-pointer
+     glyph over interactive elements (see script near the end of <body>).
+     aria-hidden + inert to assistive tech; purely decorative. -->
+<div class="fa-cursor-follower" id="faCursorFollower" aria-hidden="true">
+  <i class="fa-regular fa-hand-pointer" aria-hidden="true"></i>
+</div>
 
 <!-- ============ HEADER ============ -->
 <header class="site-header">
@@ -1415,6 +1594,50 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
         </div>
 
         <div id="domainMsgWrap" aria-live="polite"></div>
+
+        <!-- Website Type - required before publish -->
+        <div class="field-block">
+          <label class="field-label" for="websiteTypeSelect">
+            Website type <span class="required-asterisk" aria-hidden="true">*</span>
+          </label>
+          <div class="select-wrap">
+            <select id="websiteTypeSelect" required aria-describedby="websiteTypeHelper">
+              <option value="" disabled selected>Choose a type…</option>
+              <option value="Website">Website</option>
+              <option value="Web App">Web App</option>
+              <option value="Game">Game</option>
+              <option value="Portfolio">Portfolio</option>
+              <option value="Blog">Blog</option>
+              <option value="Documentation">Documentation</option>
+              <option value="Landing Page">Landing Page</option>
+              <option value="Business">Business</option>
+              <option value="Personal">Personal</option>
+              <option value="Tool">Tool</option>
+              <option value="Dashboard">Dashboard</option>
+              <option value="E-commerce">E-commerce</option>
+              <option value="Other">Other</option>
+            </select>
+            <i class="fa-solid fa-chevron-down select-chevron" aria-hidden="true"></i>
+          </div>
+          <p id="websiteTypeHelper" class="field-hint">Shown in the repository's README so visitors know what this site is.</p>
+          <div id="websiteTypeMsgWrap" aria-live="polite"></div>
+        </div>
+
+        <!-- Editable toggle -->
+        <div class="field-block">
+          <label class="checkbox-row" for="editableCheckbox">
+            <input type="checkbox" id="editableCheckbox">
+            <span class="checkbox-box" aria-hidden="true"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+            <span class="checkbox-label">
+              <span class="checkbox-title">Make this website editable</span>
+              <span class="checkbox-sub">Get a one-time password so you (or anyone with it) can update this exact address later.</span>
+            </span>
+          </label>
+          <div class="editable-note" id="editableNote">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <span>Leave this off if you never plan to update this site - once published, this address stays locked to this exact file forever.</span>
+          </div>
+        </div>
       </section>
 
       <!-- STEP 3 - Expiration -->
@@ -1478,6 +1701,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
           <div class="summary-row">
             <span class="summary-label"><i class="fa-solid fa-link" aria-hidden="true"></i>Address</span>
             <span class="summary-value pending" id="sumDomain">Not chosen yet</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label"><i class="fa-solid fa-shapes" aria-hidden="true"></i>Type</span>
+            <span class="summary-value pending" id="sumType">Not chosen yet</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>Editable</span>
+            <span class="summary-value" id="sumEditable"><span class="tag" style="background:var(--slate-100);color:var(--slate-500);">Off</span></span>
           </div>
           <div class="summary-row">
             <span class="summary-label"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>Expires</span>
@@ -1657,6 +1888,77 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   </div>
 </div>
 
+<!-- ============ REQUIRED PUBLISH INFORMATION MODAL ============ -->
+<div class="modal-backdrop" id="publishInfoModal" role="dialog" aria-modal="true" aria-labelledby="publishInfoTitle">
+  <div class="modal-box modal-box-form">
+    <div class="modal-icon modal-icon-brand"><i class="fa-solid fa-clipboard-user" aria-hidden="true"></i></div>
+    <h3 id="publishInfoTitle">Before you publish</h3>
+    <p>A couple of quick details, saved with your website and kept up to date whenever you update it.</p>
+
+    <div class="field-block" style="margin-top:4px;">
+      <label class="field-label" for="ownerNameInput">Owner name <span class="required-asterisk" aria-hidden="true">*</span></label>
+      <input type="text" id="ownerNameInput" class="modal-text-input" placeholder="e.g. Jordan Lee" maxlength="80" autocomplete="off">
+      <div id="ownerNameMsgWrap" aria-live="polite"></div>
+    </div>
+
+    <div class="field-block">
+      <label class="field-label" for="purposeInput">Purpose / reason <span class="required-asterisk" aria-hidden="true">*</span></label>
+      <input type="text" id="purposeInput" class="modal-text-input" placeholder="e.g. Personal portfolio for job hunting" maxlength="160" autocomplete="off">
+      <div id="purposeMsgWrap" aria-live="polite"></div>
+    </div>
+
+    <div class="field-block">
+      <label class="field-label" for="descriptionInput">Description <span class="optional-tag">Optional</span></label>
+      <textarea id="descriptionInput" class="modal-text-input modal-textarea" placeholder="A short description of what this site is or does…" maxlength="280" rows="3"></textarea>
+      <p class="field-hint" id="descriptionCharCount">0 / 280</p>
+    </div>
+
+    <div class="btn-row" style="margin-top:6px;">
+      <button type="button" class="btn btn-ghost btn-sm" id="publishInfoCancelBtn" style="flex:1;">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" id="publishInfoConfirmBtn" style="flex:2;" disabled>
+        <i class="fa-solid fa-rocket" aria-hidden="true"></i> <span id="publishInfoConfirmLabel">Continue to publish</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ UPDATE PASSWORD MODAL (editable sites) ============ -->
+<div class="modal-backdrop" id="updatePasswordModal" role="dialog" aria-modal="true" aria-labelledby="updatePasswordTitle">
+  <div class="modal-box">
+    <div class="modal-icon modal-icon-brand"><i class="fa-solid fa-lock" aria-hidden="true"></i></div>
+    <h3 id="updatePasswordTitle">This address already exists</h3>
+    <p id="updatePasswordText">This website is editable. Enter its update password to publish a new version to the same address.</p>
+
+    <div class="field-block" style="margin-top:4px;">
+      <label class="field-label" for="updatePasswordInput">Update password</label>
+      <input type="text" id="updatePasswordInput" class="modal-text-input" style="font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;" placeholder="e.g. A8K2P" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <div id="updatePasswordMsgWrap" aria-live="polite"></div>
+    </div>
+
+    <div class="btn-row" style="margin-top:6px;">
+      <button type="button" class="btn btn-ghost btn-sm" id="updatePasswordCancelBtn" style="flex:1;">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" id="updatePasswordConfirmBtn" style="flex:2;">
+        <i class="fa-solid fa-unlock" aria-hidden="true"></i> Unlock &amp; update
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NEW UPDATE-PASSWORD REVEAL (shown once, right after a fresh editable publish) ============ -->
+<div class="modal-backdrop" id="passwordRevealModal" role="dialog" aria-modal="true" aria-labelledby="passwordRevealTitle">
+  <div class="modal-box">
+    <div class="modal-icon" style="background:var(--warning-bg);color:var(--yellow-600);"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></div>
+    <h3 id="passwordRevealTitle">Save this update password</h3>
+    <p>It is required to update this website in the future. HoppingSite stores only a scrambled version of it - this is the <strong>only time</strong> it will ever be shown.</p>
+    <div class="url-box" style="justify-content:center;">
+      <i class="fa-solid fa-key" aria-hidden="true"></i>
+      <span id="revealedPassword" style="font-family:var(--font-mono);font-weight:700;font-size:18px;letter-spacing:.12em;">A8K2P</span>
+      <button type="button" class="copy-btn" id="copyPasswordBtn" aria-label="Copy password"><i class="fa-solid fa-copy" aria-hidden="true"></i></button>
+    </div>
+    <button type="button" class="btn btn-primary" style="width:100%;margin-top:16px;" id="passwordRevealCloseBtn">I've saved it</button>
+  </div>
+</div>
+
 <!-- iOS/iPadOS: Apple gives Safari no install-prompt API, so the OS-level
      install step is the Share sheet's "Add to Home Screen" - this produces
      a genuine standalone app (own icon, full-screen, own app-switcher
@@ -1806,6 +2108,213 @@ const TokenStore = (function(){
   function isValidFormat(token){ return isFineGrained(token) || (isClassic(token) && token.length > 8); }
 
   return { get, set, clear, has, isValidFormat, isClassic, isFineGrained, PREFIX };
+})();
+
+/* ============================================================
+   PasswordUtil - generates and verifies the "Editable" update
+   password.
+   ============================================================
+   HoppingSite has no backend/database, so the update password can't
+   live in some server-side table - the only place to keep it is
+   inside the repo the site itself lives in. The PLAINTEXT password
+   is therefore never written anywhere: only a SHA-256 hash of it is
+   committed (inside .hoppingsite.json), via the Web Crypto API
+   already built into every modern browser. Verifying a later update
+   just means hashing whatever the person typed and comparing hashes.
+
+   IMPORTANT - what this scheme does and doesn't protect against:
+   GitHub Pages requires the repo to be public, so .hoppingsite.json
+   (and the hash inside it) is publicly readable by anyone, forever.
+   SHA-256 is a fast general-purpose hash, not a slow password KDF
+   (bcrypt/scrypt/argon2) - it's built for integrity checks, not for
+   resisting offline cracking. Combined with a short 5-character
+   generated password (~34^5, roughly 45M combinations from the
+   UPPER+DIGITS pool below), that hash is crackable offline in well
+   under a second on ordinary hardware once someone has it.
+   This is enough to stop a casual visitor from guessing the password
+   through the app's own UI - it is NOT a real security boundary
+   against someone who downloads the hash and attacks it directly.
+   Separately: the actual access boundary for this app is the
+   visitor's own GitHub PAT (see TokenStore above) - anyone holding
+   that token can push to the repo directly via the GitHub API
+   regardless of what this password system says. The password only
+   gates HoppingSite's own update flow, not the repo itself.
+   If a stronger guarantee is ever needed, that requires a real
+   backend (rate-limited server-side verification, a proper KDF, and
+   a way to keep the hash out of a public repo) - not something a
+   client-side-only app can fully provide.
+   ============================================================ */
+const PasswordUtil = (function(){
+  const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I/O - avoids 0/O and 1/I confusion
+  const DIGITS = "23456789"; // no 0/1 for the same reason
+  const LENGTH = 5;
+
+  /** Cryptographically-random 5-char password: uppercase letters + numbers, mixed order, guaranteed at least one of each. */
+  function generate(){
+    const pools = [UPPER, DIGITS];
+    const all = UPPER + DIGITS;
+    const bytes = new Uint32Array(LENGTH);
+    crypto.getRandomValues(bytes);
+    const chars = [];
+    // Guarantee at least one uppercase letter and one digit (position 0/1
+    // before shuffling), then fill the rest from the combined pool.
+    chars.push(UPPER[bytes[0] % UPPER.length]);
+    chars.push(DIGITS[bytes[1] % DIGITS.length]);
+    for(let i = 2; i < LENGTH; i++){
+      chars.push(all[bytes[i] % all.length]);
+    }
+    // Fisher-Yates shuffle using more crypto-random bytes, so the
+    // guaranteed letter/digit aren't always in positions 0/1.
+    const shuffleBytes = new Uint32Array(LENGTH);
+    crypto.getRandomValues(shuffleBytes);
+    for(let i = chars.length - 1; i > 0; i--){
+      const j = shuffleBytes[i] % (i + 1);
+      const tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp;
+    }
+    return chars.join("");
+  }
+
+  /** SHA-256 of a string, returned as lowercase hex - used to hash the password before it's ever committed anywhere. */
+  async function sha256Hex(text){
+    const bytes = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  async function verify(candidatePassword, storedHash){
+    if(!candidatePassword || !storedHash) return false;
+    const candidateHash = await sha256Hex(candidatePassword.trim().toUpperCase());
+    return candidateHash === storedHash;
+  }
+
+  return { generate, sha256Hex, verify };
+})();
+
+/* ============================================================
+   SiteMetadata - builds/parses the .hoppingsite.json metadata file
+   and the README.md that travels with every published repo.
+   ============================================================
+   Both files are committed alongside index.html. .hoppingsite.json
+   is the machine-readable record (website type, editable flag +
+   password hash, owner/purpose/description, timestamps) that a
+   later update reads back to decide whether/how it's allowed to
+   proceed. README.md is the same information, human-readable, and
+   never includes the password itself - only whether the site is
+   password protected.
+   ============================================================ */
+const SiteMetadata = (function(){
+  const METADATA_PATH = ".hoppingsite.json";
+  const README_PATH = "README.md";
+  const SCHEMA_VERSION = 1;
+
+  function websiteTypeDescription(type){
+    const map = {
+      "Website":"A general-purpose website.",
+      "Web App":"A browser-based web application.",
+      "Game":"A browser-based HTML5 game.",
+      "Portfolio":"A personal or professional portfolio site.",
+      "Blog":"A blog or article-style site.",
+      "Documentation":"Documentation or reference material.",
+      "Landing Page":"A single landing/marketing page.",
+      "Business":"A business or company site.",
+      "Personal":"A personal site.",
+      "Tool":"A utility or tool.",
+      "Dashboard":"A dashboard or data-display interface.",
+      "E-commerce":"An online store or e-commerce front-end.",
+      "Other":"A site that doesn't fit the other categories."
+    };
+    return map[type] || "A single-file website.";
+  }
+
+  /** Builds the JSON object committed as .hoppingsite.json. passwordHash is null when Editable is off. */
+  function build({ name, websiteType, description, editable, passwordHash, ownerName, purpose, publishedAt, updatedAt }){
+    return {
+      schema: SCHEMA_VERSION,
+      generatedBy:"HoppingSite",
+      name,
+      websiteType: websiteType || "Other",
+      description: description || "",
+      owner: ownerName || "",
+      purpose: purpose || "",
+      editable: !!editable,
+      passwordHash: editable ? (passwordHash || null) : null,
+      publishedAt: publishedAt || new Date().toISOString(),
+      updatedAt: updatedAt || publishedAt || new Date().toISOString()
+    };
+  }
+
+  function toFileContent(metaObj){
+    return JSON.stringify(metaObj, null, 2) + "\n";
+  }
+
+  /** Parses .hoppingsite.json content fetched from GitHub; returns null on any malformed/missing content rather than throwing. */
+  function parse(rawContent){
+    try{
+      const obj = JSON.parse(rawContent);
+      if(!obj || typeof obj !== "object") return null;
+      return obj;
+    }catch(e){ return null; }
+  }
+
+  function formatDate(iso){
+    try{
+      const d = new Date(iso);
+      if(isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString(undefined, { year:"numeric", month:"long", day:"numeric" });
+    }catch(e){ return iso; }
+  }
+
+  /** Builds README.md content. Never includes the actual password - only whether the site is password protected. */
+  function buildReadme({ name, owner, websiteType, description, ownerName, purpose, editable, publishedAt, updatedAt, liveUrl }){
+    const typeDesc = websiteTypeDescription(websiteType);
+    const lines = [];
+    lines.push(`# ${name}`);
+    lines.push("");
+    lines.push(`Published with [HoppingSite](https://github.com/hoppingsite) - free, one-click static hosting on GitHub Pages.`);
+    lines.push("");
+    lines.push(`## Project Information`);
+    lines.push("");
+    lines.push(`**Website Name:**`);
+    lines.push(name);
+    lines.push("");
+    lines.push(`**Domain:**`);
+    lines.push(liveUrl || `https://${owner}.github.io/${name}`);
+    lines.push("");
+    lines.push(`**Website Type:**`);
+    lines.push(websiteType || "Other");
+    lines.push("");
+    lines.push(`**Description:**`);
+    lines.push(description && description.trim() ? description.trim() : typeDesc);
+    lines.push("");
+    lines.push(`**Owner:**`);
+    lines.push(ownerName || "Not specified");
+    lines.push("");
+    lines.push(`**Purpose:**`);
+    lines.push(purpose || "Not specified");
+    lines.push("");
+    lines.push(`**Published Date:**`);
+    lines.push(formatDate(publishedAt));
+    lines.push("");
+    lines.push(`**Last Updated:**`);
+    lines.push(formatDate(updatedAt));
+    lines.push("");
+    lines.push(`**Editable:**`);
+    lines.push(editable ? "Yes" : "No");
+    if(editable){
+      lines.push("");
+      lines.push(`**Password Protected:** Yes - an update password set by the owner is required to publish changes to this address. HoppingSite stores only a scrambled (hashed) version of it, never the password itself.`);
+      lines.push("");
+      lines.push(`> **A note on what this actually protects.** This repository is public, which means the scrambled password (and this whole README) can be read by anyone - that's how GitHub Pages works. The password stops someone from casually updating this site through HoppingSite's own interface, but it is not a strong lock: a public repo's scrambled password can, in principle, be cracked by someone who deliberately targets it. Don't reuse a password you use anywhere else, and don't rely on this alone to protect anything sensitive. Anyone with a GitHub token that has write access to this repo can also update it directly, regardless of this password.`);
+    }
+    lines.push("");
+    lines.push(`---`);
+    lines.push("");
+    lines.push(`*This README is generated and kept up to date automatically by HoppingSite whenever this website is published or updated.*`);
+    lines.push("");
+    return lines.join("\n");
+  }
+
+  return { METADATA_PATH, README_PATH, build, toFileContent, parse, buildReadme, websiteTypeDescription };
 })();
 
 /* ============================================================
@@ -1986,6 +2495,43 @@ const GitHubClient = (function(){
     bytes.forEach(b => binary += String.fromCharCode(b));
     return btoa(binary);
   }
+  function fromBase64(b64){
+    const binary = atob((b64 || "").replace(/\n/g, ""));
+    const bytes = new Uint8Array(binary.length);
+    for(let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  /**
+   * GET /repos/{owner}/{repo}/contents/{path} - read a file's content and
+   * sha (the sha is required by the Contents API to update an existing
+   * file - without it, PUT would be refused as "resource conflict").
+   * Returns { ok:true, content, sha } on success, or the raw request()
+   * result (including a clean 404) on failure so callers can tell
+   * "file doesn't exist yet" apart from a genuine transport problem.
+   */
+  async function getFileContent(owner, name, path){
+    const res = await request(`/repos/${owner}/${name}/contents/${path}`, { method:"GET" });
+    if(!res.ok) return res;
+    const content = res.body && res.body.content ? fromBase64(res.body.content) : "";
+    return { ok:true, status:res.status, content, sha: res.body && res.body.sha };
+  }
+
+  /**
+   * PUT /repos/{owner}/{repo}/contents/{path} - creates or updates one
+   * file. Pass `sha` (from a prior getFileContent) to update an existing
+   * file; omit it to create a new one. Used for index.html, the
+   * .hoppingsite.json metadata file, and README.md alike.
+   */
+  async function writeFile(owner, name, path, textContent, message, sha){
+    const payload = { message, content: toBase64(textContent), branch:"main" };
+    if(sha) payload.sha = sha;
+    return request(`/repos/${owner}/${name}/contents/${path}`, {
+      method:"PUT",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+  }
 
   /**
    * PUT /repos/{owner}/{repo}/contents/index.html - creates the file.
@@ -1993,15 +2539,7 @@ const GitHubClient = (function(){
    * index.html can never already exist here; no sha/update branch needed.
    */
   async function upsertIndexHtml(owner, name, htmlContent){
-    return request(`/repos/${owner}/${name}/contents/index.html`, {
-      method:"PUT",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({
-        message: "Initial publish via HoppingSite",
-        content: toBase64(htmlContent),
-        branch:"main"
-      })
-    });
+    return writeFile(owner, name, "index.html", htmlContent, "Initial publish via HoppingSite");
   }
 
   /**
@@ -2133,7 +2671,7 @@ const GitHubClient = (function(){
     return null;
   }
 
-  async function publishSite({ name, htmlContent }, onStage){
+  async function publishSite({ name, htmlContent, meta }, onStage){
     try{
       onStage("init");
 
@@ -2157,13 +2695,13 @@ const GitHubClient = (function(){
       const existingFailure = classifyFailure(existing);
       if(existingFailure) return existingFailure;
       if(existing.ok){
-        // One-shot publishing: a name that already has a repo - whether
-        // this exact browser session created it or not - is permanently
-        // taken. There is no "update my own site" path any more; once a
-        // name is published it can never be republished, edited, or
-        // reverted. This is intentional (see point 3): treating "I
-        // published this" as special would let the same tab silently
-        // overwrite a live site, which is exactly what we no longer want.
+        // publishSite() is only ever called for a brand-new address - the
+        // UI layer calls checkExistingSite() first and routes existing
+        // editable addresses through updateSite() instead (see below). If
+        // we get here and the repo already exists, it means the address
+        // was taken by someone else (or something else) between the last
+        // availability check and this call - report it as taken rather
+        // than silently overwriting a repo this flow didn't create.
         return { ok:false, reason:"name_taken" };
       }
       if(!existing.ok && existing.status !== 404){
@@ -2242,7 +2780,34 @@ const GitHubClient = (function(){
         return { ok:false, reason:"error", message: committed.body?.message || "Could not upload index.html." };
       }
 
-      return await finishAfterCommit(owner, name, onStage);
+      // ----------------------------------------------------------------
+      // .hoppingsite.json + README.md - committed right after index.html.
+      // These carry the Website Type, Editable flag + password HASH (never
+      // the plaintext password), and the publish-info metadata. Best
+      // effort: a hiccup writing either of these must never be reported as
+      // "publish failed" - the actual website (index.html) is already
+      // live at this point, which is what matters most. Metadata/README
+      // failures are surfaced back to the caller as a soft warning instead.
+      // ----------------------------------------------------------------
+      let metaWarning = null;
+      if(meta){
+        const metaContent = SiteMetadata.toFileContent(meta.metaObj);
+        const metaRes = await writeFile(owner, name, SiteMetadata.METADATA_PATH, metaContent, "Add HoppingSite metadata");
+        if(!metaRes.ok){
+          metaWarning = "Your site is live, but HoppingSite couldn't save its metadata file - editing later may not work as expected.";
+        }
+        const readmeContent = SiteMetadata.buildReadme(meta.readmeFields);
+        const readmeRes = await writeFile(owner, name, SiteMetadata.README_PATH, readmeContent, "Add README via HoppingSite");
+        if(!readmeRes.ok && !metaWarning){
+          metaWarning = "Your site is live, but HoppingSite couldn't write its README.md.";
+        }
+      }
+
+      const finished = await finishAfterCommit(owner, name, onStage);
+      if(finished.ok && metaWarning){
+        finished.metaWarning = metaWarning;
+      }
+      return finished;
     }catch(err){
       return { ok:false, reason:"error", message: err && err.message ? err.message : "Something went wrong while publishing." };
     }
@@ -2359,7 +2924,116 @@ const GitHubClient = (function(){
     }
   }
 
-  return { getRepo, getOwner, publishSite, retryUploadAndFinish };
+  /**
+   * Checks whether `name` already has a published repo under this token's
+   * account, and if so, reads back its .hoppingsite.json metadata to
+   * decide what the UI should do next:
+   *  - "new"          - no repo yet, a normal first publish
+   *  - "blocked"      - repo exists, Editable is off (or no metadata at
+   *                      all, e.g. a site published before this feature
+   *                      existed) - no update path, must pick another name
+   *  - "needsPassword"- repo exists, Editable is on - caller must collect
+   *                      + verify the update password before updateSite()
+   *  - "error"        - the check itself failed (network/auth/etc) -
+   *                      distinct from "new" so the UI never treats an
+   *                      unchecked name as safe to publish over
+   * Returns { status, owner?, meta?, message? }.
+   */
+  async function checkExistingSite(name){
+    const ownerRes = await getOwner();
+    const ownerFailure = classifyFailure(ownerRes);
+    if(ownerFailure) return { status:"error", ...ownerFailure };
+    if(!ownerRes.ok) return { status:"error", message: ownerRes.message || "Could not verify this GitHub token's account." };
+    const owner = ownerRes.login;
+
+    const existing = await getRepo(owner, name);
+    if(!existing.ok && existing.status === 404){
+      return { status:"new", owner };
+    }
+    const existingFailure = classifyFailure(existing);
+    if(existingFailure) return { status:"error", owner, ...existingFailure };
+    if(!existing.ok){
+      return { status:"error", owner, message: existing.body?.message || "Could not check GitHub for that repository." };
+    }
+
+    // Repo exists - read its metadata file to see if it's editable.
+    const metaRes = await getFileContent(owner, name, SiteMetadata.METADATA_PATH);
+    if(!metaRes.ok){
+      // No metadata file at all (site published before this feature, or
+      // by some other tool) - treat as not editable; there's no password
+      // to check against, so there's no safe way to allow an update.
+      return { status:"blocked", owner };
+    }
+    const meta = SiteMetadata.parse(metaRes.content);
+    if(!meta || !meta.editable || !meta.passwordHash){
+      return { status:"blocked", owner, meta };
+    }
+    return { status:"needsPassword", owner, meta, metaSha: metaRes.sha };
+  }
+
+  /**
+   * Publishes a new version of an EXISTING editable site: verifies the
+   * supplied password against the stored hash, then overwrites only
+   * index.html, .hoppingsite.json, and README.md - repository history,
+   * settings, and GitHub Pages configuration are all preserved untouched
+   * (nothing here ever deletes or recreates the repo).
+   */
+  async function updateSite({ owner, name, htmlContent, meta, password, existingMeta, existingMetaSha }, onStage){
+    try{
+      const passwordOk = await PasswordUtil.verify(password, existingMeta.passwordHash);
+      if(!passwordOk){
+        return { ok:false, reason:"bad_password", message:"That password doesn't match this website's update password." };
+      }
+
+      onStage("init");
+      // Need index.html's current sha to update it (Contents API requires
+      // the sha of the file being replaced).
+      const currentIndex = await getFileContent(owner, name, "index.html");
+      const indexFailure = !currentIndex.ok ? classifyFailure(currentIndex) : null;
+      if(indexFailure) return indexFailure;
+
+      onStage("upload");
+      const committed = await writeFile(owner, name, "index.html", htmlContent, "Update site via HoppingSite", currentIndex.ok ? currentIndex.sha : undefined);
+      const committedFailure = classifyFailure(committed);
+      if(committedFailure) return committedFailure;
+      if(!committed.ok){
+        return { ok:false, reason:"error", message: committed.body?.message || "Could not update index.html." };
+      }
+
+      // Metadata + README are refreshed too (Last Updated, description,
+      // owner/purpose, etc) - same best-effort treatment as a fresh
+      // publish: never fail the whole update over these two secondary files.
+      let metaWarning = null;
+      const metaContent = SiteMetadata.toFileContent(meta.metaObj);
+      const metaRes = await writeFile(owner, name, SiteMetadata.METADATA_PATH, metaContent, "Update HoppingSite metadata", existingMetaSha);
+      if(!metaRes.ok){
+        metaWarning = "Your site was updated, but HoppingSite couldn't refresh its metadata file.";
+      }
+      const readmeCurrent = await getFileContent(owner, name, SiteMetadata.README_PATH);
+      const readmeContent = SiteMetadata.buildReadme(meta.readmeFields);
+      const readmeRes = await writeFile(owner, name, SiteMetadata.README_PATH, readmeContent, "Update README via HoppingSite", readmeCurrent.ok ? readmeCurrent.sha : undefined);
+      if(!readmeRes.ok && !metaWarning){
+        metaWarning = "Your site was updated, but HoppingSite couldn't refresh its README.md.";
+      }
+
+      // Pages/build config is left completely alone - it was already
+      // configured on the first publish and nothing here touches
+      // /pages settings, so it's "preserved" simply by never being called.
+      onStage("pages"); onStage("verify"); onStage("deploy"); onStage("final");
+      const pagesInfo = await getPagesStatus(owner, name);
+      const liveUrl = pagesInfo.ok && pagesInfo.body && pagesInfo.body.html_url
+        ? pagesInfo.body.html_url
+        : `https://${owner}.github.io/${name}`;
+
+      const result = { ok:true, repo:name, owner, url: liveUrl, isUpdate:true };
+      if(metaWarning) result.metaWarning = metaWarning;
+      return result;
+    }catch(err){
+      return { ok:false, reason:"error", message: err && err.message ? err.message : "Something went wrong while updating." };
+    }
+  }
+
+  return { getRepo, getOwner, getFileContent, publishSite, retryUploadAndFinish, checkExistingSite, updateSite };
 })();
 
 /* ============================================================
@@ -2378,7 +3052,23 @@ const state = {
   // A name in this set can never be republished or updated (see point 3
   // below); it exists purely so the UI can explain *why* a name that
   // now shows "taken" is actually the user's own already-finished site.
-  publishedRepoNames: new Set()
+  publishedRepoNames: new Set(),
+
+  // ---- Website Type / Editable / Publish Info (metadata) ----
+  websiteType:"",
+  isEditable:false,
+  ownerName:"",
+  purpose:"",
+  description:"",
+
+  // ---- Update-flow state, set by checkExistingSite() right before publish ----
+  // "new" = address is free, this is a first publish
+  // "blocked" = address exists and is not editable - no update path
+  // "needsPassword" = address exists and is editable - update password required
+  existingSiteStatus:"new",
+  existingMeta:null, // parsed .hoppingsite.json of the existing repo, if any
+  existingMetaSha:null, // sha of the existing .hoppingsite.json file, needed to overwrite it on update
+  verifiedUpdatePassword:null // the plaintext password the user just typed and that matched, held only in memory for this one update
 };
 
 /* ============================================================
@@ -2756,14 +3446,18 @@ const checkAvailability = debounce(async function(name){
 
   // Real check against GitHub: does a repo with this name already exist
   // under this token's own account? Publishing is one-shot and permanent
-  // (see point 3) - a name this session already published to is still
-  // reported as taken, just with a distinct message explaining why.
+  // UNLESS that existing repo was published with "Editable" turned on -
+  // in that case it's not "taken", it's updatable with its password (the
+  // submit handler runs the authoritative check via checkExistingSite()
+  // right before publishing; this inline check exists purely to give
+  // fast, friendly feedback as the person types).
   //
   // NOTE: In production, swap this for a call to your backend instead:
   //   fetch(HoppingSiteConfig.api.baseUrl + HoppingSiteConfig.api.endpoints.checkAvailability, {
   //     method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ name })
   //   }).then(r => r.json()).then(data => { ...use data.available... });
   let taken = false;
+  let takenIsEditable = false;
   let alreadyPublishedByMe = false;
   let authFailed = false;
   let forbidden = false;
@@ -2812,6 +3506,16 @@ const checkAvailability = debounce(async function(name){
       failureMessage = "Couldn't reach GitHub to check that name. You can still try publishing.";
     } else {
       taken = res.ok; // 200 = repo exists = name taken; 404 = free
+      if(taken){
+        // Peek at .hoppingsite.json to tell "taken" apart from "existing,
+        // but editable with a password" - only for the inline message;
+        // the submit flow re-verifies this for real before publishing.
+        const metaRes = await GitHubClient.getFileContent(ownerRes.login, name, SiteMetadata.METADATA_PATH);
+        if(metaRes.ok){
+          const parsed = SiteMetadata.parse(metaRes.content);
+          takenIsEditable = !!(parsed && parsed.editable && parsed.passwordHash);
+        }
+      }
     }
     }
   }
@@ -2854,16 +3558,25 @@ const checkAvailability = debounce(async function(name){
     return;
   }
 
-  if(taken){
+  if(taken && takenIsEditable && !alreadyPublishedByMe){
+    // Existing + editable: not blocked. Publishing will prompt for the
+    // update password instead of refusing the address outright.
+    state.domainStatus = "available";
+    domainRow.classList.add("is-valid");
+    domainRow.classList.remove("is-invalid");
+    setDomainStatusIcon("available");
+    const previewUrl = resolvedLogin ? `${resolvedLogin}.github.io/${name}` : `github.io/${name}`;
+    setDomainMessage(`${previewUrl} already exists and is editable - you'll be asked for its update password when you publish.`, "success");
+  } else if(taken){
     state.domainStatus = "unavailable";
     domainRow.classList.add("is-invalid");
     domainRow.classList.remove("is-valid");
     setDomainStatusIcon("unavailable");
     if(alreadyPublishedByMe){
       const liveUrl = resolvedLogin ? `${resolvedLogin}.github.io/${name}` : `${name}`;
-      setDomainMessage(`You already published "${name}" - it's live at ${liveUrl} and can't be republished or changed. Pick a different name for a new site.`, "error");
+      setDomainMessage(`You already published "${name}" this session - it's live at ${liveUrl}. Pick a different name for a new site, or use its update password if it's editable.`, "error");
     } else {
-      setDomainMessage(`"${name}" is already taken. Try a different name.`, "error");
+      setDomainMessage(`"${name}" is already taken and isn't editable. Try a different name.`, "error");
       openUnavailableModal(name);
     }
   } else {
@@ -2885,6 +3598,14 @@ domainInput.addEventListener("input", ()=>{
   domainCharCount.textContent = `${clean.length} / ${HoppingSiteConfig.domain.maxLen}`;
   state.domainName = clean;
   updateLivePreview(clean);
+
+  // The address changed - any existing-site check from a previous name is
+  // now stale. Reset so submit always re-checks the current address
+  // instead of reusing a decision made for a different one.
+  state.existingSiteStatus = "new";
+  state.existingMeta = null;
+  state.existingMetaSha = null;
+  state.verifiedUpdatePassword = null;
 
   domainRow.classList.remove("is-valid","is-invalid");
   setDomainStatusIcon("idle");
@@ -2948,6 +3669,42 @@ unavailableModal.addEventListener("click", (e)=>{ if(e.target === unavailableMod
 document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && unavailableModal.classList.contains("show")) closeUnavailableModal(); });
 
 /* ============================================================
+   STEP 2b - Website Type + Editable
+   ============================================================ */
+const websiteTypeSelect = $("#websiteTypeSelect");
+const websiteTypeMsgWrap = $("#websiteTypeMsgWrap");
+const editableCheckbox = $("#editableCheckbox");
+const editableNote = $("#editableNote");
+
+function setWebsiteTypeMessage(text, type){
+  websiteTypeMsgWrap.innerHTML = "";
+  if(!text) return;
+  const icon = type === "error" ? "fa-circle-exclamation" : "fa-circle-check";
+  websiteTypeMsgWrap.appendChild(el("div", `field-msg ${type}`, `<i class="fa-solid ${icon}" aria-hidden="true"></i><span>${text}</span>`));
+}
+
+websiteTypeSelect.addEventListener("change", ()=>{
+  state.websiteType = websiteTypeSelect.value;
+  if(state.websiteType){
+    websiteTypeSelect.classList.add("is-valid");
+    websiteTypeSelect.classList.remove("is-invalid");
+    setWebsiteTypeMessage("", null);
+  }
+  updateSummary();
+  updatePublishState();
+});
+
+editableCheckbox.addEventListener("change", ()=>{
+  state.isEditable = editableCheckbox.checked;
+  editableNote.classList.toggle("is-on", state.isEditable);
+  editableNote.innerHTML = state.isEditable
+    ? `<i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>After publishing, you'll get a one-time password. Save it - it's the only way to update this exact address later, and it's shown only once.</span>`
+    : `<i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Leave this off if you never plan to update this site - once published, this address stays locked to this exact file forever.</span>`;
+  updateSummary();
+  updatePublishState();
+});
+
+/* ============================================================
    STEP 3 - Expiration
    ============================================================ */
 const expiryGrid = $("#expiryGrid");
@@ -2988,6 +3745,20 @@ function updateSummary(){
   } else {
     expEl.innerHTML = `<span class="tag" style="background:var(--slate-100);color:var(--slate-500);"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> ${opt ? opt.label : ""}</span>`;
   }
+
+  const typeEl = $("#sumType");
+  if(state.websiteType){
+    typeEl.textContent = state.websiteType;
+    typeEl.classList.remove("pending");
+  } else {
+    typeEl.textContent = "Not chosen yet";
+    typeEl.classList.add("pending");
+  }
+
+  const editableEl = $("#sumEditable");
+  editableEl.innerHTML = state.isEditable
+    ? `<span class="tag"><i class="fa-solid fa-lock-open" aria-hidden="true"></i> On</span>`
+    : `<span class="tag" style="background:var(--slate-100);color:var(--slate-500);">Off</span>`;
 }
 
 /* ============================================================
@@ -2997,13 +3768,16 @@ const publishBtn = $("#publishBtn");
 const publishBlockedMsgWrap = $("#publishBlockedMsgWrap");
 function updatePublishState(){
   const hasToken = TokenStore.has();
-  const ready = hasToken && !!state.file && state.domainStatus === "available";
+  const ready = hasToken && !!state.file && state.domainStatus === "available" && !!state.websiteType;
   publishBtn.disabled = !ready;
 
   publishBlockedMsgWrap.innerHTML = "";
   if(!hasToken){
     publishBlockedMsgWrap.appendChild(el("div", "field-msg error",
       `<i class="fa-solid fa-key" aria-hidden="true"></i><span>Add your GitHub token above before publishing.</span>`));
+  } else if(hasToken && !!state.file && state.domainStatus === "available" && !state.websiteType){
+    publishBlockedMsgWrap.appendChild(el("div", "field-msg error",
+      `<i class="fa-solid fa-shapes" aria-hidden="true"></i><span>Choose a website type above before publishing.</span>`));
   }
 }
 
@@ -3324,16 +4098,73 @@ function showRepoAccessGap(result){
   });
 }
 
+/**
+ * Builds the .hoppingsite.json object + README fields for the current
+ * publish/update, from state + a resolved owner login. Shared by both
+ * the fresh-publish and update paths so the two files always agree.
+ */
+function buildMetaPayload({ owner, name, isUpdate, existingMeta, passwordHash }){
+  const now = new Date().toISOString();
+  const publishedAt = isUpdate && existingMeta && existingMeta.publishedAt ? existingMeta.publishedAt : now;
+  const metaObj = SiteMetadata.build({
+    name,
+    websiteType: state.websiteType,
+    description: state.description,
+    editable: state.isEditable,
+    passwordHash: state.isEditable ? (passwordHash || (existingMeta && existingMeta.passwordHash)) : null,
+    ownerName: state.ownerName,
+    purpose: state.purpose,
+    publishedAt,
+    updatedAt: now
+  });
+  const liveUrl = `https://${owner}.github.io/${name}`;
+  const readmeFields = {
+    name, owner, websiteType: state.websiteType, description: state.description,
+    ownerName: state.ownerName, purpose: state.purpose, editable: state.isEditable,
+    publishedAt, updatedAt: now, liveUrl
+  };
+  return { metaObj, readmeFields };
+}
+
 async function runDeployment(){
   deployStartTime = performance.now();
   resetDeployPanel();
 
   const name = state.domainName;
+  const isUpdate = state.existingSiteStatus === "needsPassword";
 
-  const result = await GitHubClient.publishSite(
-    { name, htmlContent: state.fileContent },
-    onDeployStage
-  );
+  let result;
+  if(isUpdate){
+    const owner = state.existingMeta && state.existingMeta.__owner;
+    const passwordHash = null; // update keeps the existing hash - password itself doesn't change here
+    const meta = buildMetaPayload({ owner, name, isUpdate:true, existingMeta: state.existingMeta, passwordHash });
+    result = await GitHubClient.updateSite(
+      {
+        owner, name, htmlContent: state.fileContent, meta,
+        password: state.verifiedUpdatePassword,
+        existingMeta: state.existingMeta,
+        existingMetaSha: state.existingMetaSha
+      },
+      onDeployStage
+    );
+  } else {
+    // Fresh publish - if Editable is on, generate the one-time password now
+    // (right before it's hashed into the metadata that gets committed) so
+    // it can be shown to the person exactly once after success.
+    let newPassword = null, passwordHash = null;
+    if(state.isEditable){
+      newPassword = PasswordUtil.generate();
+      passwordHash = await PasswordUtil.sha256Hex(newPassword);
+    }
+    const ownerRes = await GitHubClient.getOwner();
+    const owner = ownerRes.ok ? ownerRes.login : (state.lastOwnerLogin || "");
+    const meta = buildMetaPayload({ owner, name, isUpdate:false, existingMeta:null, passwordHash });
+    result = await GitHubClient.publishSite(
+      { name, htmlContent: state.fileContent, meta },
+      onDeployStage
+    );
+    if(result.ok && newPassword) result.newPassword = newPassword;
+  }
 
   clearInterval(creepTimer);
   stopElapsedTimer();
@@ -3361,6 +4192,9 @@ async function runDeployment(){
       setDomainMessage(`"${name}" is already taken. Try a different name.`, "error");
       updateSummary(); updatePublishState();
       openUnavailableModal(name);
+    } else if(result.reason === "bad_password"){
+      showSnackbar(result.message, "err", 6000);
+      openUpdatePasswordModal(result.message);
     } else if(result.reason === "auth"){
       const msg = result.message || "HoppingSite isn't connected to a working GitHub account yet.";
       showSnackbar(msg, "err", 8000);
@@ -3394,11 +4228,12 @@ async function runDeployment(){
   }
 
   setProgress(100);
-  deployStatus.textContent = "Deployment complete!";
+  deployStatus.textContent = isUpdate ? "Update complete!" : "Deployment complete!";
   const lastCur = deployLog.querySelector(".cur");
   if(lastCur){ lastCur.classList.remove("cur"); lastCur.classList.add("ok"); lastCur.innerHTML = `<i class="fa-solid fa-check" style="margin-right:5px;"></i>${lastCur.dataset.label}`; }
 
   state.publishedRepoNames.add(name);
+  state.verifiedUpdatePassword = null; // never keep the plaintext password in memory longer than this one request needs it
   setTimeout(()=> showSuccess(result), 500);
 }
 
@@ -3425,28 +4260,257 @@ function showSuccess(result){
   const opt = HoppingSiteConfig.expiration.options.find(o=>o.value===state.expiration);
   $("#statExpiry").textContent = opt ? opt.label : "Never";
 
+  $("#successState h2").textContent = result.isUpdate ? "Your update is live!" : "Your site is live!";
+  $("#successState > p").textContent = result.isUpdate
+    ? "HoppingSite pushed your update to GitHub Pages."
+    : "HoppingSite deployed your file to GitHub Pages.";
+
   const manualNote = $("#pagesManualStepNote");
   if(result.pagesManualStepNeeded){
     $("#pagesManualStepText").innerHTML = `${result.pagesMessage} <a href="https://github.com/${result.owner}/${result.repo}/settings/pages" target="_blank" rel="noopener"><b>Open Pages settings</b></a>.`;
     manualNote.classList.remove("hidden");
     showSnackbar("Repo and file published - one manual step left for Pages.", "ok", 6000);
+  } else if(result.metaWarning){
+    $("#pagesManualStepText").textContent = result.metaWarning;
+    manualNote.classList.remove("hidden");
+    showSnackbar(result.isUpdate ? "Your website was updated!" : "Your website is live!", "ok");
   } else {
     manualNote.classList.add("hidden");
-    showSnackbar("Your website is live!", "ok");
+    showSnackbar(result.isUpdate ? "Your website was updated!" : "Your website is live!", "ok");
+  }
+
+  // Editable + fresh publish: reveal the one-time update password now,
+  // right after the success panel is visible. Never shown for updates
+  // (the password doesn't change on an update) or when Editable is off.
+  if(result.newPassword){
+    $("#revealedPassword").textContent = result.newPassword;
+    passwordRevealModal.classList.add("show");
   }
 }
 
-deployForm.addEventListener("submit", (e)=>{
-  e.preventDefault();
-  if(publishBtn.disabled) return;
+/* ============================================================
+   Required Publish Information modal (Owner Name + Purpose required,
+   Description optional) - shown right before a fresh publish.
+   ============================================================ */
+const publishInfoModal = $("#publishInfoModal");
+const ownerNameInput = $("#ownerNameInput");
+const purposeInput = $("#purposeInput");
+const descriptionInput = $("#descriptionInput");
+const descriptionCharCount = $("#descriptionCharCount");
+const publishInfoConfirmBtn = $("#publishInfoConfirmBtn");
+const publishInfoCancelBtn = $("#publishInfoCancelBtn");
 
-  // lock controls
+function setFieldValidity(inputEl, msgWrapEl, valid, errorText){
+  inputEl.classList.toggle("is-invalid", !valid);
+  inputEl.classList.toggle("is-valid", valid && inputEl.value.trim().length > 0);
+  if(msgWrapEl){
+    msgWrapEl.innerHTML = "";
+    if(!valid && errorText){
+      msgWrapEl.appendChild(el("div", "field-msg error", `<i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span>${errorText}</span>`));
+    }
+  }
+}
+
+function updatePublishInfoValidity(){
+  const ownerValid = ownerNameInput.value.trim().length > 0;
+  const purposeValid = purposeInput.value.trim().length > 0;
+  publishInfoConfirmBtn.disabled = !(ownerValid && purposeValid);
+  return ownerValid && purposeValid;
+}
+
+ownerNameInput.addEventListener("input", ()=>{
+  setFieldValidity(ownerNameInput, $("#ownerNameMsgWrap"), ownerNameInput.value.trim().length > 0, null);
+  updatePublishInfoValidity();
+});
+purposeInput.addEventListener("input", ()=>{
+  setFieldValidity(purposeInput, $("#purposeMsgWrap"), purposeInput.value.trim().length > 0, null);
+  updatePublishInfoValidity();
+});
+descriptionInput.addEventListener("input", ()=>{
+  descriptionCharCount.textContent = `${descriptionInput.value.length} / 280`;
+});
+
+function openPublishInfoModal(){
+  ownerNameInput.value = state.ownerName || "";
+  purposeInput.value = state.purpose || "";
+  descriptionInput.value = state.description || "";
+  descriptionCharCount.textContent = `${descriptionInput.value.length} / 280`;
+  ownerNameInput.classList.remove("is-invalid","is-valid");
+  purposeInput.classList.remove("is-invalid","is-valid");
+  $("#ownerNameMsgWrap").innerHTML = "";
+  $("#purposeMsgWrap").innerHTML = "";
+  $("#publishInfoConfirmLabel").textContent = "Continue to publish";
+  updatePublishInfoValidity();
+  publishInfoModal.classList.add("show");
+  setTimeout(()=> ownerNameInput.focus(), 50);
+}
+function closePublishInfoModal(){
+  publishInfoModal.classList.remove("show");
+}
+publishInfoCancelBtn.addEventListener("click", closePublishInfoModal);
+publishInfoModal.addEventListener("click", (e)=>{ if(e.target === publishInfoModal) closePublishInfoModal(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && publishInfoModal.classList.contains("show")) closePublishInfoModal(); });
+
+publishInfoConfirmBtn.addEventListener("click", ()=>{
+  const ownerValid = ownerNameInput.value.trim().length > 0;
+  const purposeValid = purposeInput.value.trim().length > 0;
+  setFieldValidity(ownerNameInput, $("#ownerNameMsgWrap"), ownerValid, "Owner name is required.");
+  setFieldValidity(purposeInput, $("#purposeMsgWrap"), purposeValid, "Purpose / reason is required.");
+  if(!ownerValid || !purposeValid) return;
+
+  state.ownerName = ownerNameInput.value.trim();
+  state.purpose = purposeInput.value.trim();
+  state.description = descriptionInput.value.trim();
+
+  closePublishInfoModal();
+  beginDeployment();
+});
+
+/* ============================================================
+   Update Password modal (existing + editable sites)
+   ============================================================ */
+const updatePasswordModal = $("#updatePasswordModal");
+const updatePasswordInput = $("#updatePasswordInput");
+const updatePasswordConfirmBtn = $("#updatePasswordConfirmBtn");
+const updatePasswordCancelBtn = $("#updatePasswordCancelBtn");
+
+function openUpdatePasswordModal(errorText){
+  updatePasswordInput.value = "";
+  updatePasswordInput.classList.remove("is-invalid");
+  $("#updatePasswordMsgWrap").innerHTML = "";
+  $("#updatePasswordText").textContent = `"${state.domainName}" is editable. Enter its update password to publish a new version to the same address.`;
+  if(errorText){
+    setFieldValidity(updatePasswordInput, $("#updatePasswordMsgWrap"), false, errorText);
+  }
+  updatePasswordModal.classList.add("show");
+  setTimeout(()=> updatePasswordInput.focus(), 50);
+}
+function closeUpdatePasswordModal(){
+  updatePasswordModal.classList.remove("show");
+}
+updatePasswordCancelBtn.addEventListener("click", closeUpdatePasswordModal);
+updatePasswordModal.addEventListener("click", (e)=>{ if(e.target === updatePasswordModal) closeUpdatePasswordModal(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && updatePasswordModal.classList.contains("show")) closeUpdatePasswordModal(); });
+
+updatePasswordConfirmBtn.addEventListener("click", async ()=>{
+  const candidate = updatePasswordInput.value.trim();
+  if(!candidate){
+    setFieldValidity(updatePasswordInput, $("#updatePasswordMsgWrap"), false, "Enter the update password.");
+    return;
+  }
+  updatePasswordConfirmBtn.disabled = true;
+  updatePasswordConfirmBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Checking…`;
+
+  const matches = await PasswordUtil.verify(candidate, state.existingMeta && state.existingMeta.passwordHash);
+
+  updatePasswordConfirmBtn.disabled = false;
+  updatePasswordConfirmBtn.innerHTML = `<i class="fa-solid fa-unlock" aria-hidden="true"></i> Unlock &amp; update`;
+
+  if(!matches){
+    setFieldValidity(updatePasswordInput, $("#updatePasswordMsgWrap"), false, "Incorrect password. Try again.");
+    return;
+  }
+
+  state.verifiedUpdatePassword = candidate;
+  closeUpdatePasswordModal();
+
+  // Updates skip the Owner/Purpose/Description modal only if that info is
+  // already on file from the original publish - otherwise (e.g. a site
+  // published before this feature existed) still collect it once.
+  if(state.existingMeta && state.existingMeta.owner && state.existingMeta.purpose){
+    state.ownerName = state.existingMeta.owner;
+    state.purpose = state.existingMeta.purpose;
+    state.description = state.existingMeta.description || "";
+    beginDeployment();
+  } else {
+    $("#publishInfoConfirmLabel").textContent = "Continue to update";
+    openPublishInfoModal();
+  }
+});
+
+/* ============================================================
+   Password Reveal modal (shown once, right after a fresh editable publish)
+   ============================================================ */
+const passwordRevealModal = $("#passwordRevealModal");
+$("#passwordRevealCloseBtn").addEventListener("click", ()=> passwordRevealModal.classList.remove("show"));
+$("#copyPasswordBtn").addEventListener("click", async ()=>{
+  const text = $("#revealedPassword").textContent;
+  try{ await navigator.clipboard.writeText(text); showSnackbar("Password copied - store it somewhere safe.", "ok", 3000); }
+  catch(err){
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); ta.remove();
+    showSnackbar("Password copied - store it somewhere safe.", "ok", 3000);
+  }
+});
+
+/**
+ * Actually locks the form and kicks off runDeployment() - split out of
+ * the submit handler so both the "new site" path (Publish Info modal
+ * confirm) and the "existing editable site" path (Update Password modal
+ * confirm, then Publish Info if needed) land here identically.
+ */
+function beginDeployment(){
   publishBtn.disabled = true;
   Array.from(deployForm.elements).forEach(elm => elm.disabled = true);
-
   deployOverlay.classList.add("show");
   setSideProgressState("hide");
   runDeployment();
+}
+
+deployForm.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  if(publishBtn.disabled) return;
+
+  publishBtn.disabled = true;
+  publishBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Checking address…`;
+
+  const name = state.domainName;
+  const check = await GitHubClient.checkExistingSite(name);
+
+  publishBtn.disabled = false;
+  publishBtn.innerHTML = `<i class="fa-solid fa-rocket" aria-hidden="true"></i> Publish website`;
+
+  // guard against the domain field changing while the check was in flight
+  if(sanitizeDomainInput(domainInput.value) !== name) return;
+
+  if(check.status === "error"){
+    const msg = check.message || "Couldn't check that address on GitHub. Please try again.";
+    showSnackbar(msg, "err", 6000);
+    setDomainMessage(msg, "error");
+    return;
+  }
+
+  if(check.owner) state.lastOwnerLogin = check.owner;
+
+  if(check.status === "new"){
+    state.existingSiteStatus = "new";
+    state.existingMeta = null;
+    state.existingMetaSha = null;
+    openPublishInfoModal();
+    return;
+  }
+
+  if(check.status === "blocked"){
+    state.existingSiteStatus = "blocked";
+    const msg = `"${name}" already exists and isn't editable. Choose a different address, or republish with "Editable" turned on next time.`;
+    showSnackbar(msg, "err", 7000);
+    state.domainStatus = "unavailable";
+    domainRow.classList.add("is-invalid");
+    domainRow.classList.remove("is-valid");
+    setDomainStatusIcon("unavailable");
+    setDomainMessage(msg, "error");
+    updateSummary(); updatePublishState();
+    return;
+  }
+
+  if(check.status === "needsPassword"){
+    state.existingSiteStatus = "needsPassword";
+    state.existingMeta = { ...check.meta, __owner: check.owner };
+    state.existingMetaSha = check.metaSha;
+    openUpdatePasswordModal(null);
+    return;
+  }
 });
 
 /* Copy link */
@@ -3492,6 +4556,15 @@ $("#publishAnotherBtn").addEventListener("click", ()=>{
   state.domainName = "";
   state.domainStatus = "idle";
   state.expiration = HoppingSiteConfig.expiration.default;
+  state.websiteType = "";
+  state.isEditable = false;
+  state.ownerName = "";
+  state.purpose = "";
+  state.description = "";
+  state.existingSiteStatus = "new";
+  state.existingMeta = null;
+  state.existingMetaSha = null;
+  state.verifiedUpdatePassword = null;
 
   fileInput.value = "";
   renderFileChip();
@@ -3504,6 +4577,13 @@ $("#publishAnotherBtn").addEventListener("click", ()=>{
   domainRow.classList.remove("is-valid","is-invalid");
   setDomainStatusIcon("idle");
   setDomainMessage("", null);
+
+  websiteTypeSelect.value = "";
+  websiteTypeSelect.classList.remove("is-valid","is-invalid");
+  setWebsiteTypeMessage("", null);
+  editableCheckbox.checked = false;
+  editableNote.classList.remove("is-on");
+  editableNote.innerHTML = `<i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Leave this off if you never plan to update this site - once published, this address stays locked to this exact file forever.</span>`;
 
   expiryChips.forEach(c=>{ c.classList.remove("active"); c.setAttribute("aria-checked","false"); });
   const neverChip = expiryChips.find(c=>c.dataset.value === "never");
